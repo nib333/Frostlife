@@ -1,0 +1,6 @@
+RPMS/
+*.rpm
+.qmake.stash
+Makefile
+*.pro.user
+documentation.list
