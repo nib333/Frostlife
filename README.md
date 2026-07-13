@@ -73,8 +73,7 @@ Any change to `qml/js/gamestate.js` must keep this green.
 - `qml/cover/CoverPage.qml` — backgrounded view.
 
 ## Known limitations / next steps
-- Odd player counts put the last player full-width at the bottom (no 90° side seats yet).
-- No storm counter, dice/coin, seating randomizer, timers, per-game stats, or Scryfall art yet.
+- No storm counter, timers, or Scryfall art yet.
 - Landscape locked out for now (portrait only).
 - Compact-mode and chip-row capacities are estimated from counts/character
   widths (clipping is the backstop) — extreme custom-counter names may trip

@@ -79,7 +79,8 @@ readonly property color warning:     "#fbbf24"
 
 ## Feature scope
 **Implemented and device-verified:** multi-player life totals (2–6, explicit row layout, flip rule = every row except the bottom row flips 180°); commander-damage matrix with partner slots and `cmdLabel` naming (commander name, falling back to player name / "· A"/"· B" for unnamed partners); counters poison/energy/experience/cmd tax; custom counters (max 8; names survive reset, values zeroed); custom statuses (max 4; names survive reset, switched off); monarch/initiative (exclusive) + city's blessing; interactive panel pills with ± for damage and counters; priority-based panel layout (life > damage > counters > status) with compact mode — aggregate "⚔ max +N" damage pill, 2-column counter grid, "+N" overflow pills/chips that open the detail page; bottom-anchored status chips with camera-cutout clearance on top-row panels; History page (reverse-chronological log, undo/redo buttons, descriptive "undo: <action>" entries); autosave; keep-screen-awake; reset / starting-life presets; cover page.
-**Still to build:** storm counter, dice/coin/high-roll, seating randomizer, per-game stats, optional Scryfall card art, 90° side seats, landscape.
+**Also implemented since:** History page, Settings (rules toggles, keep-awake gate, true-black canvas via `app.canvasColor`), Tools (d6/d20/coin/first-player roll), randomize seating on new game (identities carry into new games via `newGameFrom`), per-game stats (End game → dconf store → Stats page), around-the-table seating mode (90° side seats, wide panel arrangement, `cutoutEdge` camera clearance).
+**Still to build:** storm counter, optional Scryfall card art, landscape.
 
 ## Keep-awake
 Use `Nemo.KeepAlive` → `DisplayBlanking { preventBlanking: true }` during an active game (Harbour-allowed). Only prevent blanking while a game is active; release it otherwise.
