@@ -2,12 +2,12 @@ import QtQuick 2.6
 import Sailfish.Silica 1.0
 import "../components"
 
-/* Table layout (portrait, 20:9 screen):
- *   2p: stacked, top flipped
- *   3p: two flipped on top row, one full-width bottom
- *   4p: 2×2, top row flipped
- *   5p: 2+2 flipped/normal + one full-width bottom
- *   6p: 3×2, top row flipped
+/* Table layout (portrait, 20:9 screen). Panels flip 180° iff they are
+ * NOT in the bottom row (the full-width panel for odd counts, the last
+ * pair for even), so everyone across the table reads right-side-up:
+ *   2p: stacked, top flipped          3p: pair flipped + full-width bottom
+ *   4p: 2×2, top row flipped          5p: two pairs flipped + full-width bottom
+ *   6p: 3×2, top two rows flipped
  * MVP keeps 180° flips only (no 90° side seats) — revisit after real-table testing.
  */
 Page {
@@ -70,6 +70,7 @@ Page {
                 delegate: Row {
                     readonly property var seats: page.seatRows[index]
                     readonly property bool isTopRow: index === 0
+                    readonly property bool isBottomRow: index === page.seatRows.length - 1
                     width: layout.width
                     height: (layout.height - gutter * (page.seatRows.length - 1))
                             / page.seatRows.length
@@ -81,8 +82,8 @@ Page {
                             readonly property int seat: seats[index]
                             playerIndex: seat
                             topRow: isTopRow
-                            // top half of the table is flipped to face the players across
-                            flipped: seat < Math.floor(page.n / 2) || (page.n === 2 && seat === 0)
+                            // everyone except the bottom row faces the players across
+                            flipped: !isBottomRow
                             width: seats.length === 1 ? parent.width
                                                       : (parent.width - gutter) / 2
                             height: parent.height
