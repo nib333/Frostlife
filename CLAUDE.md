@@ -1,9 +1,9 @@
-# CLAUDE.md — Frostbite Life Counter
+# CLAUDE.md — Frostlife
 
 ## What this is
 Native Sailfish OS life-counter app for Magic: The Gathering, EDH/Commander-focused. Solo project. Shares the Frostbite brand but is a **completely separate, self-contained codebase**: no backend, no auth, no database, no network except optional Scryfall card art. All state is local. This simplicity is the point — it removes most of what makes apps hard.
 
-(`harbour-frostlife` is a placeholder name — rename freely, but keep the `harbour-` prefix if you ever want store submission.)
+(Display name is **Frostlife**, tagline "Frostlife from Frostbite". The binary/package name stays `harbour-frostlife` — the `harbour-` prefix is required for store submission.)
 
 ## Target device
 - 2026 Jolla Phone (DIT model), Sailfish OS 5.2.

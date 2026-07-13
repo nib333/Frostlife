@@ -1,9 +1,9 @@
 Name:       harbour-frostlife
-Summary:    Frostbite Life Counter for Magic: The Gathering (EDH)
+Summary:    Frostlife — life counter for Magic: The Gathering (EDH)
 Version:    0.1.0
 Release:    1
 License:    MIT
-URL:        https://frostbite.example
+URL:        https://github.com/nib333/Frostlife
 Source0:    %{name}-%{version}.tar.bz2
 Requires:   sailfishsilica-qt5 >= 0.10.9
 Requires:   libsailfishapp-launcher
@@ -12,7 +12,8 @@ BuildRequires: pkgconfig(sailfishapp) >= 1.0.2
 BuildRequires: desktop-file-utils
 
 %description
-A dark-first, EDH-focused life counter for Magic: The Gathering.
+Frostlife from Frostbite — a dark-first, EDH-focused life counter
+for Magic: The Gathering.
 Tracks life, commander damage (with partner support), poison and
 other counters, monarch and initiative, with undo and autosave.
 Designed for the Jolla Phone AMOLED display.

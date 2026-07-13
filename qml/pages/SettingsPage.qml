@@ -77,7 +77,14 @@ Page {
                 wrapMode: Text.WordWrap
                 font.pixelSize: Theme.fontSizeSmall
                 color: app.pal.primaryText
-                text: qsTr("Frostbite Life Counter")
+                text: qsTr("Frostlife")
+            }
+            Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                font.pixelSize: Theme.fontSizeExtraSmall
+                color: app.pal.mutedText
+                text: qsTr("Frostlife from Frostbite")
             }
             Label {
                 width: parent.width

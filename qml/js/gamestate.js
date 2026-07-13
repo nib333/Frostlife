@@ -1,5 +1,5 @@
 /*
- * gamestate.js — Frostbite Life Counter core logic
+ * gamestate.js — Frostlife core logic
  * Pure JavaScript, no QML dependencies. Imported by QML via:
  *     import "js/gamestate.js" as Game
  * and testable under node via the module.exports shim at the bottom.

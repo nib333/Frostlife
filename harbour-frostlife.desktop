@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Frostbite Life
+Name=Frostlife
 Icon=harbour-frostlife
 Exec=sailfish-qml harbour-frostlife
 X-Nemo-Application-Type=silica-qt5
