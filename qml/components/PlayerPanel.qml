@@ -16,6 +16,42 @@ Rectangle {
     // read-through helpers; `app.rev` dependency forces re-evaluation
     readonly property var pl: app.rev >= 0 ? app.game.players[playerIndex] : null
 
+    // ---- compact mode: collapse the pill stack when it can't fit ----
+    // max single-commander damage + number of nonzero sources, for the
+    // aggregate pill
+    readonly property var dmgAgg: {
+        if (app.rev < 0 || !pl) return { max: 0, n: 0 }
+        var max = 0, n = 0
+        for (var s = 0; s < app.game.players.length; s++) {
+            if (s === playerIndex) continue
+            var dRow = pl.cmdDamage[s]
+            if (!dRow) continue
+            for (var k = 0; k < 2; k++)
+                if (dRow[k] > 0) { n++; if (dRow[k] > max) max = dRow[k] }
+        }
+        return { max: max, n: n }
+    }
+    readonly property int counterPillCount: {
+        if (app.rev < 0 || !pl) return 0
+        var c = 0
+        var keys = ["poison", "energy", "experience", "cmdTax"]
+        for (var i = 0; i < keys.length; i++) if (pl.counters[keys[i]] > 0) c++
+        for (var j = 0; j < pl.customCounters.length; j++)
+            if (pl.customCounters[j].value > 0) c++
+        return c
+    }
+    // Estimate the full stack's natural height from pill COUNTS, never
+    // from rendered items — sizing the stack from its own layout would
+    // be a binding loop. Overestimating slightly just engages compact
+    // mode a little early.
+    readonly property real _pillH: Theme.itemSizeExtraSmall * 0.72 + Theme.paddingSmall / 2
+    readonly property real _lifeH: Math.min(height * 0.42, Theme.fontSizeHuge * 2.2) * 1.2
+    readonly property real _chromeH: Theme.fontSizeMedium * 1.2 + Theme.paddingMedium * 2 // name row
+                                     + Theme.itemSizeExtraSmall * 0.6                     // status chips
+                                     + (topRow ? Theme.itemSizeExtraSmall : Theme.paddingSmall)
+    readonly property bool compact:
+        (dmgAgg.n + counterPillCount) * _pillH + _lifeH > height - _chromeH
+
     signal detailRequested(int playerIndex)
 
     rotation: flipped ? 180 : 0
@@ -23,6 +59,7 @@ Rectangle {
     border.color: pl && pl.monarch ? app.pal.frostBlue : app.pal.hairline
     border.width: pl && pl.monarch ? 2 : 1
     radius: Theme.paddingSmall
+    clip: true   // content must never bleed onto neighboring panels
 
     // ---- life tap zones ----
     Row {
@@ -77,6 +114,7 @@ Rectangle {
         Column { // commander damage received — the urgent number, above life
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Theme.paddingSmall / 2
+            visible: !panel.compact
             Repeater {
                 model: app.rev >= 0 ? app.game.players.length * 2 : 0 // source × partner slot
                 delegate: CounterPill {
@@ -93,6 +131,19 @@ Rectangle {
             }
         }
 
+        CounterChip { // compact: one aggregate pill; tap opens the full matrix
+            visible: panel.compact && panel.dmgAgg.n > 0
+            anchors.horizontalCenter: parent.horizontalCenter
+            glyph: "⚔ " + panel.dmgAgg.max
+                   + (panel.dmgAgg.n > 1 ? " +" + (panel.dmgAgg.n - 1) : "")
+            value: 0
+            accent: app.pal.error
+            MouseArea {
+                anchors.fill: parent
+                onClicked: panel.detailRequested(panel.playerIndex)
+            }
+        }
+
         Label { // life total — the hero number
             text: pl ? pl.life : ""
             color: pl && pl.dead ? app.pal.mutedText : app.pal.primaryText
@@ -102,9 +153,13 @@ Rectangle {
         }
 
         // ---- counter pills (under the life number; only nonzero show) ----
-        Column {
+        Flow {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Theme.paddingSmall / 2
+            // full mode: vertical stack (unbounded height never wraps);
+            // compact: wrap into rows across the panel width
+            flow: panel.compact ? Flow.LeftToRight : Flow.TopToBottom
+            width: panel.compact ? panel.width - Theme.paddingMedium * 2 : implicitWidth
             Repeater {
                 model: [
                     { key: "poison",     glyph: "\u2620", accent: app.pal.success },
