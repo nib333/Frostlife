@@ -93,6 +93,20 @@ Page {
                 color: app.pal.mutedText
                 text: qsTr("No network access — all data stays on your device.")
             }
+            BackgroundItem { // the one deliberate exception: an explicit,
+                              // user-initiated tap out to the browser — the
+                              // app itself still makes no network calls
+                width: parent.width
+                height: donateLabel.height + Theme.paddingMedium * 2
+                onClicked: Qt.openUrlExternally("https://liberapay.com/nib333/donate")
+                Label {
+                    id: donateLabel
+                    text: qsTr("Support Frostlife")
+                    color: app.pal.frostBlue
+                    font.pixelSize: Theme.fontSizeSmall
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
             Label {
                 width: parent.width
                 wrapMode: Text.WordWrap
