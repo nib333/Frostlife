@@ -83,8 +83,21 @@ ApplicationWindow {
         defaultValue: false
         onValueChanged: app._applyCanvas()
     }
+    // Canvas is the one theme token that changes at runtime (true-black
+    // toggle). It lives as a ROOT property — the same proven-reactive
+    // path as app.rev — because bindings through the inline pal QtObject
+    // did not refresh long-lived pages on device. Pages bind
+    // app.canvasColor; pal.canvas is kept in sync.
+    property color canvasColor: "#0e161d"
     function _applyCanvas() {
-        pal.canvas = (cfgTrueBlack.value === true) ? "#000000" : "#0e161d"
+        canvasColor = (cfgTrueBlack.value === true) ? "#000000" : "#0e161d"
+        pal.canvas = canvasColor
+        console.log("[frostlife] _applyCanvas: trueBlack =", cfgTrueBlack.value,
+                    "-> canvas", canvasColor) // TEMP diagnostics
+    }
+    Connections { // TEMP diagnostics — remove once true-black is verified
+        target: pal
+        onCanvasChanged: console.log("[frostlife] pal.canvas signal ->", pal.canvas)
     }
     property alias keepAwake: cfgKeepAwake.value
     property alias trueBlack: cfgTrueBlack.value

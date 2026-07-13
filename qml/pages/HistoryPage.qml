@@ -7,7 +7,7 @@ import Sailfish.Silica 1.0
 Page {
     id: page
 
-    Rectangle { anchors.fill: parent; color: app.pal.canvas; z: -1 }
+    Rectangle { anchors.fill: parent; color: app.canvasColor; z: -1 }
 
     // newest first; rebuilt on every mutation via app.rev
     readonly property var entries: {

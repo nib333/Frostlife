@@ -4,7 +4,7 @@ import Sailfish.Silica 1.0
 Dialog {
     id: dialog
 
-    Rectangle { anchors.fill: parent; color: app.pal.canvas; z: -1 }
+    Rectangle { anchors.fill: parent; color: app.canvasColor; z: -1 }
 
     property int playerCount: app.game.players.length
     property int startingLife: app.game.startingLife

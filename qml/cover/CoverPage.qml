@@ -2,7 +2,7 @@ import QtQuick 2.6
 import Sailfish.Silica 1.0
 
 CoverBackground {
-    Rectangle { anchors.fill: parent; color: app.pal.canvas }
+    Rectangle { anchors.fill: parent; color: app.canvasColor }
 
     Column {
         anchors.centerIn: parent

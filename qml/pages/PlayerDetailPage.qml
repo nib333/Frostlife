@@ -8,7 +8,7 @@ import "../components"
 Page {
     id: page
 
-    Rectangle { anchors.fill: parent; color: app.pal.canvas; z: -1 }
+    Rectangle { anchors.fill: parent; color: app.canvasColor; z: -1 }
     property int playerIndex: 0
     readonly property var pl: app.rev >= 0 ? app.game.players[playerIndex] : null
 
