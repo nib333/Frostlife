@@ -30,6 +30,17 @@ Rectangle {
     // read-through helpers; `app.rev` dependency forces re-evaluation
     readonly property var pl: app.rev >= 0 ? app.game.players[playerIndex] : null
 
+    // Explicit, deterministic width budget for the damage-pill column —
+    // NOT left to Qt Quick's implicit Column/Grid size cache. That cache
+    // can grow to fit a transiently-wide pill and never shrink back down
+    // (Qt Quick positioners are prone to this — the same bug class as
+    // the cover-action geometry corruption fixed earlier), which drags
+    // the life number's centering off with it since the life number
+    // shares a column-width computation with the damage stack. Every
+    // pill caps its own label to this same value via maxWidth, so the
+    // column can never need to be wider than this in the first place.
+    readonly property real pillColW: panel.width * (panel.wideLayout ? 0.3 : 0.72)
+
     // ---- compact mode: collapse the pill stack when it can't fit ----
     // max single-commander damage + number of nonzero sources, for the
     // aggregate pill
@@ -222,14 +233,32 @@ Rectangle {
         Grid { // stacked: one column, damage → life → counters;
                // wide (side seats): damage | life | counters side by side
             anchors.centerIn: parent
+            // Explicit width in stacked (rows) mode only: Grid's implicit
+            // width (max child width) could previously grow to fit a
+            // transiently-wide damage pill and never shrink back,
+            // dragging every other child's centering (incl. the life
+            // number) off with it. wideLayout keeps implicit sizing here
+            // — its 3-column side-by-side arrangement isn't the reported
+            // bug, left untouched to avoid regressing an already-verified
+            // layout.
+            width: panel.wideLayout ? undefined : panel.pillColW
             columns: panel.wideLayout ? 3 : 1
             rowSpacing: 0
             columnSpacing: Theme.paddingLarge
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
 
-            Column { // commander damage received — the urgent pills
-                spacing: Theme.paddingSmall / 2
+            Grid { // commander damage received — the urgent pills. Grid,
+                   // not Column: horizontalItemAlignment centers each
+                   // pill within the reserved width instead of Column's
+                   // default left-alignment. Width is explicit
+                   // (panel.pillColW), not implicit-fit-to-content, so it
+                   // can never grow from a transiently-wide pill and fail
+                   // to shrink back — see panel.pillColW.
+                width: panel.pillColW
+                columns: 1
+                rowSpacing: Theme.paddingSmall / 2
+                horizontalItemAlignment: Grid.AlignHCenter
                 visible: !panel.compact
                 Repeater {
                     model: app.rev >= 0 ? app.game.players.length * 2 : 0 // source × partner slot
@@ -244,7 +273,7 @@ Rectangle {
                         // cap so the life −/+ corridors stay clear: wide mode
                         // fits two side columns; tall rows-mode pills keep
                         // tappable margins at both edges
-                        maxWidth: panel.width * (panel.wideLayout ? 0.3 : 0.72)
+                        maxWidth: panel.pillColW
                         action: ({ type: "cmdDamage", player: panel.playerIndex,
                                    source: src, slot: slot })
                     }
@@ -259,7 +288,7 @@ Rectangle {
                 // same cap as the individual damage pills — the aggregate
                 // glyph is normally short/numeric, but this keeps every
                 // damage-pill path capped with no exceptions
-                maxWidth: panel.width * (panel.wideLayout ? 0.3 : 0.72)
+                maxWidth: panel.pillColW
                 MouseArea {
                     anchors.fill: parent
                     onClicked: panel.detailRequested(panel.playerIndex)
@@ -310,7 +339,7 @@ Rectangle {
                         label: cp ? cp.label : ""
                         accent: cp ? cp.accent : app.pal.mutedText
                         value: cp ? cp.value : 0
-                        maxWidth: panel.width * (panel.wideLayout ? 0.3 : 0.72)
+                        maxWidth: panel.pillColW
                         action: cp ? cp.action : ({})
                     }
                 }
