@@ -73,6 +73,23 @@ Rectangle {
         spacing: 0
         width: parent.width
 
+        Column { // commander damage received — the urgent number, above life
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Theme.paddingSmall / 2
+            Repeater {
+                model: app.rev >= 0 ? app.game.players.length * 2 : 0 // source × partner slot
+                delegate: CounterChip {
+                    readonly property int src: Math.floor(index / 2)
+                    readonly property int slot: index % 2
+                    glyph: app.rev >= 0 && src !== panel.playerIndex
+                           ? "⚔ " + app.cmdLabel(src, slot) : ""
+                    value: app.rev >= 0 && src !== panel.playerIndex
+                           ? panel.pl.cmdDamage[src][slot] : 0
+                    accent: app.pal.error
+                }
+            }
+        }
+
         Label { // life total — the hero number
             text: pl ? pl.life : ""
             color: pl && pl.dead ? app.pal.mutedText : app.pal.primaryText
@@ -81,11 +98,10 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
         }
 
-            // ---- counter stack (under the life number; only toggled-on counters) ----
-            Column {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: Theme.paddingSmall / 2
-                z: 3
+        // ---- counter pills (under the life number; only nonzero show) ----
+        Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Theme.paddingSmall / 2
             Repeater {
                 model: [
                     { key: "poison",     glyph: "\u2620", accent: app.pal.success },
@@ -93,48 +109,24 @@ Rectangle {
                     { key: "experience", glyph: "\u2727", accent: app.pal.frostBlue },
                     { key: "cmdTax",     glyph: "\u26C1", accent: app.pal.mutedText }
                 ]
-                delegate: Rectangle {
-                    readonly property int cVal: app.rev >= 0 ? panel.pl.counters[modelData.key] : 0
-                    visible: cVal > 0   // appears once nonzero, hides at 0
-                    radius: height / 2
-                    color: Qt.rgba(0.15, 0.20, 0.24, 0.55)
-                    border.color: app.pal.hairline
-                    border.width: 1
-                    width: crow.width + Theme.paddingSmall
-                    height: Theme.itemSizeExtraSmall * 0.72
-                    Row {
-                        id: crow
-                        anchors.centerIn: parent
-                        spacing: 0
-                        MouseArea {
-                            width: parent.height * 1.1; height: crow.height
-                            onClicked: app.act({ type: "counter", player: playerIndex,
-                                                 counter: modelData.key, delta: -1 })
-                            Label { text: "\u2212"; anchors.centerIn: parent
-                                    color: parent.pressed ? app.pal.frostBlue : app.pal.mutedText
-                                    font.pixelSize: Theme.fontSizeMedium }
-                        }
-                        Label { text: modelData.glyph
-                                color: modelData.accent
-                                opacity: cVal > 0 ? 1.0 : 0.4
-                                font.pixelSize: Theme.fontSizeMedium
-                                anchors.verticalCenter: parent.verticalCenter }
-                        Label { text: cVal
-                                color: app.pal.primaryText
-                                opacity: cVal > 0 ? 1.0 : 0.4
-                                font.pixelSize: Theme.fontSizeSmall
-                                width: Theme.fontSizeMedium
-                                horizontalAlignment: Text.AlignHCenter
-                                anchors.verticalCenter: parent.verticalCenter }
-                        MouseArea {
-                            width: parent.height * 1.1; height: crow.height
-                            onClicked: app.act({ type: "counter", player: playerIndex,
-                                                 counter: modelData.key, delta: +1 })
-                            Label { text: "+"; anchors.centerIn: parent
-                                    color: parent.pressed ? app.pal.frostBlue : app.pal.mutedText
-                                    font.pixelSize: Theme.fontSizeMedium }
-                        }
-                    }
+                delegate: CounterPill {
+                    label: modelData.glyph
+                    accent: modelData.accent
+                    value: app.rev >= 0 ? panel.pl.counters[modelData.key] : 0
+                    action: ({ type: "counter", player: panel.playerIndex,
+                               counter: modelData.key })
+                }
+            }
+            Repeater { // custom counters
+                model: app.rev >= 0 ? panel.pl.customCounters.length : 0
+                delegate: CounterPill {
+                    label: app.rev >= 0 && index < panel.pl.customCounters.length
+                           ? panel.pl.customCounters[index].name : ""
+                    accent: app.pal.frostBlue
+                    value: app.rev >= 0 && index < panel.pl.customCounters.length
+                           ? panel.pl.customCounters[index].value : 0
+                    action: ({ type: "customCounter", player: panel.playerIndex,
+                               index: index })
                 }
             }
         }
