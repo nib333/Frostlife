@@ -256,6 +256,10 @@ Rectangle {
                 glyph: "⚔ " + panel.dmgAgg.max
                        + (panel.dmgAgg.n > 1 ? " +" + (panel.dmgAgg.n - 1) : "")
                 accent: app.pal.error
+                // same cap as the individual damage pills — the aggregate
+                // glyph is normally short/numeric, but this keeps every
+                // damage-pill path capped with no exceptions
+                maxWidth: panel.width * (panel.wideLayout ? 0.3 : 0.72)
                 MouseArea {
                     anchors.fill: parent
                     onClicked: panel.detailRequested(panel.playerIndex)

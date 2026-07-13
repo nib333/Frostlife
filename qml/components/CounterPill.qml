@@ -18,9 +18,16 @@ Rectangle {
     property real maxWidth: 0
 
     // room left for the label once pill padding, both tap zones
-    // (prow.height * 1.1 each) and the value are reserved
+    // (pill.height * 1.1 each) and the value are reserved. Sized off
+    // pill.height (a fixed theme constant), NOT prow.height — prow's
+    // height is the auto-derived max of its children, and those
+    // children were previously sized FROM prow.height, a circular
+    // binding that resolved inconsistently per pill (a lone pill vs.
+    // pills stacked with siblings landed on different values), which is
+    // why the same label truncated correctly in one panel but not
+    // another with identical maxWidth.
     readonly property real _labelMax: Math.max(0, maxWidth - Theme.paddingSmall
-                                               - prow.height * 2.2 - Theme.fontSizeMedium)
+                                               - pill.height * 2.2 - Theme.fontSizeMedium)
 
     visible: value > 0   // appears once nonzero, hides at 0
     radius: height / 2
@@ -41,7 +48,7 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 0
         MouseArea {
-            width: parent.height * 1.1; height: prow.height
+            width: pill.height * 1.1; height: pill.height
             onClicked: pill.bump(-1)
             Label { text: "−"; anchors.centerIn: parent
                     color: parent.pressed ? app.pal.frostBlue : app.pal.mutedText
@@ -62,7 +69,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 anchors.verticalCenter: parent.verticalCenter }
         MouseArea {
-            width: parent.height * 1.1; height: prow.height
+            width: pill.height * 1.1; height: pill.height
             onClicked: pill.bump(+1)
             Label { text: "+"; anchors.centerIn: parent
                     color: parent.pressed ? app.pal.frostBlue : app.pal.mutedText
