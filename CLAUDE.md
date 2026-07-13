@@ -1,9 +1,9 @@
 # CLAUDE.md — Frostlife
 
 ## What this is
-Native Sailfish OS life-counter app for Magic: The Gathering, EDH/Commander-focused. Solo project. Shares the Frostbite brand but is a **completely separate, self-contained codebase**: no backend, no auth, no database, no network except optional Scryfall card art. All state is local. This simplicity is the point — it removes most of what makes apps hard.
+Native Sailfish OS life-counter app for Magic: The Gathering, EDH/Commander-focused. Solo project. A **completely separate, self-contained codebase**: no backend, no auth, no database, no network except optional Scryfall card art. All state is local. This simplicity is the point — it removes most of what makes apps hard.
 
-(Display name is **Frostlife**, tagline "Frostlife from Frostbite". The binary/package name stays `harbour-frostlife` — the `harbour-` prefix is required for store submission.)
+(Display name is **Frostlife**. The binary/package name stays `harbour-frostlife` — the `harbour-` prefix is required for store submission.)
 
 ## Target device
 - 2026 Jolla Phone (DIT model), Sailfish OS 5.2.
@@ -57,25 +57,25 @@ harbour-frostlife/
 3. **Autosave / crash protection.** Persist full game state so a crash or reboot never wipes a game. Simplest Harbour-safe route: serialize state to JSON in the app's data dir on every mutation (debounced), reload on launch.
 4. **Multi-player layouts (2–6).** Rotated/inverted panels so players around a table read right-side-up. Use QML rotation transforms; arrange responsively for the 20:9 screen.
 
-## Design language (dark-first, Sailfish-native, Frostbite accent)
-**Decision: dark theme, not the light Frostbite marketplace look.** Reasons: (1) the counter is screen-on for the whole game via `preventBlanking`, and on AMOLED a dark base keeps most pixels physically off — a light background would light nearly every pixel at brightness for an hour; (2) Silica is dark by default, so a dark app feels native; (3) high-contrast pale-on-dark reads better across a table and in dim rooms. The brand is carried through the **frost-blue accent and calm character**, not a light background. (If ever flipped to light, the original tokens map straight across.)
+## Design language (dark-first, Sailfish-native)
+**Decision: dark theme.** Reasons: (1) the counter is screen-on for the whole game via `preventBlanking`, and on AMOLED a dark base keeps most pixels physically off — a light background would light nearly every pixel at brightness for an hour; (2) Silica is dark by default, so a dark app feels native; (3) high-contrast pale-on-dark reads better across a table and in dim rooms. Carried through the **frost-blue accent and calm character**, not a light background. (If ever flipped to light, the original tokens map straight across.)
 
-Palette (dark-first mapping of the real Frostbite tokens; `canvas`/`surfaceAlt`/`hairline` are derived, muted + states are lightened for dark, the rest are exact Frostbite values). It lives as a QtObject on the app root — reference it as `app.pal.*` (NOT a qmldir singleton; see Device lessons):
+Palette (`canvas`/`surfaceAlt`/`hairline` are derived, muted + states are lightened for dark). It lives as a QtObject on the app root — reference it as `app.pal.*` (NOT a qmldir singleton; see Device lessons):
 ```qml
 // canvas "#0e161d" is NOT a pal token: it switches at runtime (true-black
 // toggle → "#000000") and lives as the flat root property `app.canvasColor`
 // (see Device lessons on inline-QtObject sub-properties)
-readonly property color surface:     "#1c2832"  // player panels / cards  = Frostbite `ink`
+readonly property color surface:     "#1c2832"  // player panels / cards — the ink surface tone
 readonly property color surfaceAlt:  "#26333e"  // raised fills / dividers
-readonly property color primaryText: "#f4f7f9"  // = Frostbite `onInk`
+readonly property color primaryText: "#f4f7f9"  // primary text on dark
 readonly property color mutedText:   "#9aa8b3"  // secondary text
 readonly property color hairline:    "#2b3a45"  // rules on dark
-readonly property color frostBlue:   "#7dbfe5"  // accent / active player = Frostbite `frostBlue`
+readonly property color frostBlue:   "#7dbfe5"  // accent / active player
 readonly property color success:     "#4ade80"
 readonly property color error:       "#f87171"
 readonly property color warning:     "#fbbf24"
 ```
-- `ink #1c2832` is dark but not true black — use it for **panels**, keep `canvas` as the deepest layer so "off" areas actually save power.
+- `surface #1c2832` is dark but not true black — use it for **panels**, keep `canvas` as the deepest layer so "off" areas actually save power.
 - Large legible numbers, hairline rules, generous spacing, calm and premium. Legibility beats decoration.
 - Prefer Silica `Theme` sizing/spacing tokens over hardcoded pixels where practical.
 
@@ -92,8 +92,8 @@ Use `Nemo.KeepAlive` → `DisplayBlanking { preventBlanking: true }` during an a
 - Only whitelisted APIs are allowed (`Nemo.KeepAlive` is fine). Check any new import against the Harbour FAQ before relying on it.
 - Not needed for personal sideloading via Developer Mode — only for store submission.
 
-## Testing discipline (mirror Frostbite)
-- The logic layer (damage math, life arithmetic, counter edge cases, autosave round-trip) must have tests. Treat it like the landed-cost harness: correctness first, then wire to UI.
+## Testing discipline
+- The logic layer (damage math, life arithmetic, counter edge cases, autosave round-trip) must have tests. Correctness first, then wire to UI.
 - Gate-review before commits. Niklas reviews; the agent does not self-approve UI it cannot see.
 
 ## References (Silica is thin in training data — lean on these)

@@ -22,17 +22,17 @@ ApplicationWindow {
     property bool canUndo: false
     property bool canRedo: false
 
-    /* Dark-first Frostbite palette (see CLAUDE.md). Lives on the root
-     * window as app.pal.* — the qmldir singleton failed to resolve at
-     * runtime on-device, leaving default-white Rectangles everywhere. */
+    /* Dark-first palette (see CLAUDE.md). Lives on the root window as
+     * app.pal.* — the qmldir singleton failed to resolve at runtime
+     * on-device, leaving default-white Rectangles everywhere. */
     readonly property QtObject pal: QtObject {
         // NOTE: the canvas color is NOT here — it switches at runtime
         // (true-black toggle) and inline-QtObject sub-properties don't
         // deliver changes to long-lived pages on device. It lives as
         // the flat root property `app.canvasColor` below.
-        readonly property color surface:     "#1c2832"  // player panels = Frostbite ink
+        readonly property color surface:     "#1c2832"  // player panels — the ink surface tone
         readonly property color surfaceAlt:  "#26333e"  // raised fills / pressed states
-        readonly property color primaryText: "#f4f7f9"  // = Frostbite onInk
+        readonly property color primaryText: "#f4f7f9"  // primary text on dark
         readonly property color mutedText:   "#9aa8b3"
         readonly property color hairline:    "#2b3a45"
         readonly property color frostBlue:   "#7dbfe5"  // accent / active states

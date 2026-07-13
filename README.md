@@ -2,12 +2,9 @@
 
 <a href="https://liberapay.com/nib333/donate"><img src="https://img.shields.io/liberapay/receives/nib333.svg?logo=liberapay"></a>
 
-Frostlife from Frostbite — a dark-first, EDH-focused Magic: The Gathering
-life counter for Sailfish OS.
-Target device: 2026 Jolla Phone (aarch64, Sailfish OS 5.2, AMOLED).
-
-Pure-QML Silica app. No backend, no network access — all data stays on your
-device. All state local, autosaved.
+Frostlife — a dark-first, EDH-focused Magic: The Gathering life counter
+for Sailfish OS. Pure-QML Silica app. No backend, no network access — all
+data stays on your device. All state local, autosaved.
 
 ## Features (implemented, device-verified)
 - 2–6 players, explicit row layout; every row except the bottom one flips 180°
@@ -74,7 +71,7 @@ Any change to `qml/js/gamestate.js` must keep this green.
 - `qml/js/gamestate.js` — the entire game engine. Plain serializable objects;
   every mutation via `applyAction()`, which snapshots for undo. See file header.
 - `qml/harbour-frostlife.qml` — owns the game object; exposes `app.act()`,
-  `app.rev` (bump-on-change; UI binds to it), `app.pal` (dark-first Frostbite
+  `app.rev` (bump-on-change; UI binds to it), `app.pal` (dark-first palette
   tokens — a QtObject on the root, deliberately NOT a qmldir singleton),
   undo/redo, autosave, keep-awake.
 - `qml/components/PlayerPanel.qml` — one player tile: full-panel life tap

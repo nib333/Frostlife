@@ -84,7 +84,7 @@ Page {
                 wrapMode: Text.WordWrap
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: app.pal.mutedText
-                text: qsTr("Frostlife from Frostbite")
+                text: qsTr("A dark-first life counter for Magic: The Gathering (EDH)")
             }
             Label {
                 width: parent.width

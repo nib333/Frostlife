@@ -12,8 +12,8 @@ BuildRequires: pkgconfig(sailfishapp) >= 1.0.2
 BuildRequires: desktop-file-utils
 
 %description
-Frostlife from Frostbite — a dark-first, EDH-focused life counter
-for Magic: The Gathering.
+Frostlife — a dark-first, EDH-focused life counter for Magic: The
+Gathering.
 Tracks life, commander damage (with partner support), poison and
 other counters, monarch and initiative, with undo and autosave.
 Designed for the Jolla Phone AMOLED display.
