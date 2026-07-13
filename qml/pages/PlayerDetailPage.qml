@@ -71,7 +71,7 @@ Page {
 
                     StepperRow {
                         width: parent.width
-                        label: src ? src.name + (src.partners ? " · A" : "") : ""
+                        label: app.rev >= 0 ? app.cmdLabel(index, 0) : ""
                         value: app.rev >= 0 && pl ? pl.cmdDamage[index][0] : 0
                         action: ({ type: "cmdDamage", player: playerIndex,
                                    source: index, slot: 0 })
@@ -79,7 +79,7 @@ Page {
                     StepperRow {
                         width: parent.width
                         visible: src ? src.partners : false
-                        label: src ? src.name + " · B" : ""
+                        label: app.rev >= 0 ? app.cmdLabel(index, 1) : ""
                         value: app.rev >= 0 && pl ? pl.cmdDamage[index][1] : 0
                         action: ({ type: "cmdDamage", player: playerIndex,
                                    source: index, slot: 1 })
