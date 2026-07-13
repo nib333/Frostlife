@@ -13,14 +13,7 @@ import "../components"
 Page {
     id: page
 
-    Rectangle {
-        anchors.fill: parent
-        color: app.canvasColor
-        z: -1
-        // TEMP diagnostics — remove once true-black is verified on device
-        onColorChanged: console.log("[frostlife] main backdrop ->", color)
-        Component.onCompleted: console.log("[frostlife] main backdrop initial:", color)
-    }
+    Rectangle { anchors.fill: parent; color: app.canvasColor; z: -1 }
     allowedOrientations: Orientation.Portrait
 
     readonly property int n: app.rev >= 0 ? app.game.players.length : 2

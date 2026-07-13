@@ -92,12 +92,6 @@ ApplicationWindow {
     function _applyCanvas() {
         canvasColor = (cfgTrueBlack.value === true) ? "#000000" : "#0e161d"
         pal.canvas = canvasColor
-        console.log("[frostlife] _applyCanvas: trueBlack =", cfgTrueBlack.value,
-                    "-> canvas", canvasColor) // TEMP diagnostics
-    }
-    Connections { // TEMP diagnostics — remove once true-black is verified
-        target: pal
-        onCanvasChanged: console.log("[frostlife] pal.canvas signal ->", pal.canvas)
     }
     property alias keepAwake: cfgKeepAwake.value
     property alias trueBlack: cfgTrueBlack.value
