@@ -8,7 +8,6 @@ Source0:    %{name}-%{version}.tar.bz2
 Requires:   sailfishsilica-qt5 >= 0.10.9
 Requires:   libsailfishapp-launcher
 Requires:   nemo-qml-plugin-configuration-qt5
-Requires:   nemo-qml-plugin-keepalive
 BuildRequires: pkgconfig(sailfishapp) >= 1.0.2
 BuildRequires: desktop-file-utils
 

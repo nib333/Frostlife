@@ -8,7 +8,7 @@ import "../components"
 Page {
     id: page
 
-    Rectangle { anchors.fill: parent; color: Palette.canvas; z: -1 }
+    Rectangle { anchors.fill: parent; color: app.pal.canvas; z: -1 }
     property int playerIndex: 0
     readonly property var pl: app.rev >= 0 ? app.game.players[playerIndex] : null
 
@@ -23,7 +23,7 @@ Page {
             width: parent ? parent.width : 0
             Label {
                 text: label
-                color: Palette.primaryText
+                color: app.pal.primaryText
                 width: parent.width * 0.34
                 anchors.verticalCenter: parent.verticalCenter
                 truncationMode: TruncationMode.Fade
@@ -35,7 +35,7 @@ Page {
             }
             Label {
                 text: value
-                color: Palette.primaryText
+                color: app.pal.primaryText
                 font.pixelSize: Theme.fontSizeLarge
                 width: Theme.itemSizeSmall
                 horizontalAlignment: Text.AlignHCenter
@@ -135,7 +135,7 @@ Page {
                 width: parent.width
                 wrapMode: Text.WordWrap
                 font.pixelSize: Theme.fontSizeExtraSmall
-                color: Palette.mutedText
+                color: app.pal.mutedText
                 text: qsTr("Commander damage also deducts life. 21 from a single commander is lethal.")
             }
 
@@ -170,7 +170,7 @@ Page {
                     readonly property var cc: app.game.players[playerIndex].customCounters[index]
                     Label {
                         text: cc.name
-                        color: Palette.primaryText
+                        color: app.pal.primaryText
                         width: parent.width * 0.34
                         anchors.verticalCenter: parent.verticalCenter
                         truncationMode: TruncationMode.Fade
@@ -183,7 +183,7 @@ Page {
                     }
                     Label {
                         text: cc.value
-                        color: Palette.primaryText
+                        color: app.pal.primaryText
                         font.pixelSize: Theme.fontSizeLarge
                         width: Theme.itemSizeSmall
                         horizontalAlignment: Text.AlignHCenter

@@ -13,7 +13,7 @@ import "../components"
 Page {
     id: page
 
-    Rectangle { anchors.fill: parent; color: Palette.canvas; z: -1 }
+    Rectangle { anchors.fill: parent; color: app.pal.canvas; z: -1 }
     allowedOrientations: Orientation.Portrait
 
     readonly property int n: app.rev >= 0 ? app.game.players.length : 2

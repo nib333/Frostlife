@@ -1,9 +1,8 @@
 import QtQuick 2.6
 import Sailfish.Silica 1.0
-import "../components"
 
 CoverBackground {
-    Rectangle { anchors.fill: parent; color: Palette.canvas }
+    Rectangle { anchors.fill: parent; color: app.pal.canvas }
 
     Column {
         anchors.centerIn: parent
@@ -16,13 +15,13 @@ CoverBackground {
                 property var pl: app.game.players[index]
                 Label {
                     text: pl.name
-                    color: Palette.mutedText
+                    color: app.pal.mutedText
                     font.pixelSize: Theme.fontSizeExtraSmall
                     anchors.verticalCenter: parent.verticalCenter
                 }
                 Label {
                     text: pl.life
-                    color: pl.dead ? Palette.mutedText : Palette.primaryText
+                    color: pl.dead ? app.pal.mutedText : app.pal.primaryText
                     font.pixelSize: Theme.fontSizeMedium
                     font.bold: true
                     anchors.verticalCenter: parent.verticalCenter

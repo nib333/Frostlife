@@ -23,6 +23,23 @@ ApplicationWindow {
     property bool canUndo: false
     property bool canRedo: false
 
+    /* Dark-first Frostbite palette (see CLAUDE.md). Lives on the root
+     * window as app.pal.* — the qmldir singleton failed to resolve at
+     * runtime on-device, leaving default-white Rectangles everywhere. */
+    readonly property QtObject pal: QtObject {
+        readonly property color canvas:      "#0e161d"  // deep base / gutters
+        readonly property color surface:     "#1c2832"  // player panels = Frostbite ink
+        readonly property color surfaceAlt:  "#26333e"  // raised fills / pressed states
+        readonly property color primaryText: "#f4f7f9"  // = Frostbite onInk
+        readonly property color mutedText:   "#9aa8b3"
+        readonly property color hairline:    "#2b3a45"
+        readonly property color frostBlue:   "#7dbfe5"  // accent / active states
+        readonly property color success:     "#4ade80"
+        readonly property color error:       "#f87171"
+        readonly property color warning:     "#fbbf24"
+        readonly property color deadOverlay: "#aa0e161d" // dimming for eliminated players
+    }
+
     function _sync() {
         canUndo = Game.canUndo(game)
         canRedo = Game.canRedo(game)
