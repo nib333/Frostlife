@@ -367,6 +367,72 @@ ok(g.players[1].dead === true, "ON recompute catches poison deaths");
 ok(g.players[2].dead === true, "ON recompute catches 21-cmd-dmg deaths");
 ok(g.players[0].dead === false, "ON recompute leaves healthy players alive");
 
+/* ---- newGameFrom (identity carryover) ---- */
+section("newGameFrom");
+g = G.createGame(3, 40);
+G.applyAction(g, { type: "rename", player: 0, name: "Niklas" });
+G.applyAction(g, { type: "partners", player: 1, value: true });
+G.applyAction(g, { type: "nameCommander", player: 1, slot: 1, name: "Tymna" });
+G.applyAction(g, { type: "addCustomCounter", player: 0, name: "Rad" });
+G.applyAction(g, { type: "customCounter", player: 0, index: 0, delta: 5 });
+G.applyAction(g, { type: "addCustomStatus", player: 2, name: "Suspected" });
+G.applyAction(g, { type: "customStatus", player: 2, index: 0 });
+g.settings.cmdDamageAffectsLife = false;
+G.applyAction(g, { type: "life", player: 0, delta: -10 });
+let ng = G.newGameFrom(g, 4, 20);
+ok(ng.players.length === 4 && ng.startingLife === 20, "count and life applied");
+ok(ng.players[0].name === "Niklas", "name carries seat-for-seat");
+ok(ng.players[0].life === 20, "life is fresh, not carried");
+ok(ng.players[1].partners === true && ng.players[1].commanderNames[1] === "Tymna",
+   "partners + commander names follow");
+ok(ng.players[0].customCounters[0].name === "Rad" && ng.players[0].customCounters[0].value === 0,
+   "custom counter names carry, values zeroed");
+ok(ng.players[2].customStatuses[0].name === "Suspected" && ng.players[2].customStatuses[0].on === false,
+   "custom status names carry, switched off");
+ok(ng.players[3].name === "Player 4", "new extra seat gets defaults");
+ok(ng.settings.cmdDamageAffectsLife === false, "settings carry over");
+ok(ng.history.length === 0 && ng.log.length === 0, "history and log are fresh");
+ok(G.newGameFrom(g, 2, 40).players.length === 2, "shrinking drops extra seats");
+
+/* ---- shuffleSeats ---- */
+section("shuffleSeats");
+// rand = () => 0 gives the known permutation [1,2,3,0] (newSeat -> oldSeat)
+g = G.createGame(4, 40);
+G.applyAction(g, { type: "rename", player: 0, name: "A" });
+G.applyAction(g, { type: "rename", player: 1, name: "B" });
+G.applyAction(g, { type: "rename", player: 2, name: "C" });
+G.applyAction(g, { type: "rename", player: 3, name: "D" });
+G.applyAction(g, { type: "partners", player: 2, value: true });
+G.applyAction(g, { type: "nameCommander", player: 2, slot: 0, name: "Thrasios" });
+G.applyAction(g, { type: "cmdDamage", player: 0, source: 2, slot: 0, delta: 7 });
+G.applyAction(g, { type: "cmdDamage", player: 0, source: 2, slot: 1, delta: 3 });
+G.shuffleSeats(g, function () { return 0; });
+ok(g.players.map(p => p.name).join("") === "BCDA", "deterministic permutation [1,2,3,0]");
+ok(g.players.every((p, i) => p.index === i), "player.index matches new seat");
+ok(g.players[1].partners === true && g.players[1].commanderNames[0] === "Thrasios",
+   "partners + commander names moved with their player");
+// old A (seat 0) is now seat 3; old source C (seat 2) is now seat 1
+ok(g.players[3].name === "A" && g.players[3].cmdDamage[1][0] === 7,
+   "cmd dmg reindexed: damage follows the source's new seat");
+ok(g.players[3].cmdDamage[1][1] === 3, "partner slot follows too");
+ok(g.players[3].life === 40 - 10, "shuffled player keeps their life");
+ok(g.log[g.log.length - 1].text === "Seating randomized", "shuffle is logged");
+
+// rand = () => 0.9999 swaps nothing: identity permutation
+g = G.createGame(3, 40);
+G.applyAction(g, { type: "rename", player: 0, name: "X" });
+G.shuffleSeats(g, function () { return 0.9999; });
+ok(g.players.map(p => p.name).join(",") === "X,Player 2,Player 3", "identity permutation possible");
+
+// permutation properties under the real RNG
+g = G.createGame(6, 40);
+const before = g.players.map(p => p.name).sort().join(",");
+G.shuffleSeats(g);
+ok(g.players.map(p => p.name).sort().join(",") === before,
+   "real RNG: every player appears exactly once");
+ok(g.players.every((p, i) => p.index === i && p.cmdDamage.length === 6),
+   "real RNG: indices and matrix width stay consistent");
+
 console.log("\n=========================");
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);

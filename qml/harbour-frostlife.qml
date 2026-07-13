@@ -57,7 +57,11 @@ ApplicationWindow {
     function undoAction() { Game.undo(game); _sync() }
     function redoAction() { Game.redo(game); _sync() }
     function reset() { game = Game.resetGame(game); _sync() }
-    function newGame(n, life) { game = Game.createGame(n, life); _sync() }
+    function newGame(n, life, shuffleSeating) {
+        game = Game.newGameFrom(game, n, life) // identities carry seat-for-seat
+        if (shuffleSeating) Game.shuffleSeats(game)
+        _sync()
+    }
 
     function maxCmdDamageFor(p) { return Game.maxCmdDamage(game.players[p]) }
     function cmdLabel(sourceIndex, slot) { return Game.commanderLabel(game.players[sourceIndex], slot) }

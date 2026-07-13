@@ -9,7 +9,7 @@ Dialog {
     property int playerCount: app.game.players.length
     property int startingLife: app.game.startingLife
 
-    onAccepted: app.newGame(playerCount, startingLife)
+    onAccepted: app.newGame(playerCount, startingLife, randomizeSwitch.checked)
 
     Column {
         width: parent.width
@@ -43,6 +43,13 @@ Dialog {
             }
             onCurrentIndexChanged:
                 dialog.startingLife = [20, 25, 30, 40][currentIndex]
+        }
+
+        TextSwitch {
+            id: randomizeSwitch
+            text: qsTr("Randomize seating")
+            description: qsTr("Shuffle who sits where — names and commanders follow")
+            checked: false
         }
     }
 }

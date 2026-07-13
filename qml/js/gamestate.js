@@ -384,6 +384,55 @@ function resetGame(game, startingLife) {
     return fresh;
 }
 
+/* New game seeded from an existing one: fresh state, but player
+ * identities carry over seat-for-seat (name, partners, commander names,
+ * custom counter/status names — values zeroed / switched off, like
+ * resetGame). Seats beyond the old player count get defaults; shrinking
+ * drops the extras. Settings carry over. */
+function newGameFrom(oldGame, playerCount, startingLife) {
+    var fresh = createGame(playerCount, startingLife);
+    for (var i = 0; i < fresh.players.length && i < oldGame.players.length; i++) {
+        var src = oldGame.players[i], dst = fresh.players[i];
+        dst.name = src.name;
+        dst.partners = src.partners;
+        dst.commanderNames = clone(src.commanderNames);
+        dst.customCounters = src.customCounters.map(function (c) { return { name: c.name, value: 0 }; });
+        dst.customStatuses = src.customStatuses.map(function (c) { return { name: c.name, on: false }; });
+    }
+    fresh.settings = clone(oldGame.settings);
+    return fresh;
+}
+
+/* Shuffle seating (Fisher-Yates). Whole player objects move — name,
+ * partners, commander names, counters — and every player's cmdDamage
+ * matrix is reindexed so damage-from-source follows the source player's
+ * new seat. `rand` is injectable for deterministic tests: a function
+ * returning [0, 1); defaults to Math.random. Not an undoable action —
+ * meant for freshly created games (empty history); snapshots taken
+ * before a shuffle would restore the old seating order. */
+function shuffleSeats(game, rand) {
+    rand = rand || Math.random;
+    var n = game.players.length;
+    var perm = [];                       // perm[newSeat] = oldSeat
+    for (var i = 0; i < n; i++) perm.push(i);
+    for (var j = n - 1; j > 0; j--) {
+        var k = Math.floor(rand() * (j + 1));
+        var t = perm[j]; perm[j] = perm[k]; perm[k] = t;
+    }
+    var players = [];
+    for (var ns = 0; ns < n; ns++) {
+        var p = game.players[perm[ns]];
+        p.index = ns;
+        var row = [];                    // new source seat x held old seat perm[x]
+        for (var x = 0; x < n; x++) row.push(p.cmdDamage[perm[x]]);
+        p.cmdDamage = row;
+        players.push(p);
+    }
+    game.players = players;
+    pushLog(game, "Seating randomized");
+    return game;
+}
+
 function serialize(game) {
     return JSON.stringify(game);
 }
@@ -411,6 +460,8 @@ if (typeof module !== "undefined" && module.exports) {
         undo: undo, redo: redo,
         canUndo: canUndo, canRedo: canRedo,
         resetGame: resetGame,
+        newGameFrom: newGameFrom,
+        shuffleSeats: shuffleSeats,
         serialize: serialize, deserialize: deserialize,
         totalCmdDamage: totalCmdDamage,
         commanderLabel: commanderLabel,
