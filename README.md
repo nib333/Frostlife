@@ -5,13 +5,27 @@ Target device: 2026 Jolla Phone (aarch64, Sailfish OS 5.2, AMOLED).
 
 Pure-QML Silica app. No backend, no network. All state local, autosaved.
 
-## Features (MVP, implemented)
-- 2–6 players, responsive grid, across-the-table panels flipped 180°
+## Features (implemented, device-verified)
+- 2–6 players, explicit row layout; every row except the bottom one flips 180°
+  so players across the table read right-side-up
 - Tap ±1 life, press-and-hold ±5 (repeating)
 - Commander damage matrix per source player, partner slots, life auto-deduction, 21-lethal
+- Commander naming: labels use the commander's name, falling back to
+  player name / "· A"/"· B" for unnamed partners (`cmdLabel`)
 - Poison / energy / experience / commander tax counters
+- Custom counters (max 8) — names survive reset, values zeroed
+- Custom statuses (max 4) — names survive reset, switched off
 - Monarch & initiative (exclusive), city's blessing
-- Undo / redo (bounded history), action log
+- Interactive panel pills with −/+ for commander damage and all counters
+- Priority-based panel layout (life > damage > counters > status) with
+  compact mode on small panels: aggregate "⚔ max +N" damage pill,
+  2-column counter grid, "+N" overflow pills/chips that open the detail page
+- Status chips anchored to the panel bottom, with camera-cutout clearance
+  on top-row (flipped) panels
+- Undo / redo (bounded history) with descriptive log entries
+  ("undo: Player 3 takes 1 cmd dmg from Player 1 → 4")
+- History page: reverse-chronological action log + undo/redo buttons
+  (pulley menu → History)
 - Autosave to dconf (debounced + flush on background) — survives crash/reboot
 - Screen keep-awake while app is active (`Nemo.KeepAlive`)
 - Cover page with live life totals + reset action
@@ -37,7 +51,7 @@ Or open `harbour-frostlife.pro` in the Sailfish IDE and hit Deploy.
 ## Logic tests (no SDK needed)
 The whole game engine is plain JS with zero QML dependencies:
 ```sh
-node tests/test_gamestate.js     # 51 tests: cmd damage, undo, persistence, rules
+node tests/test_gamestate.js     # 94 tests: cmd damage, undo/redo log, persistence, rules, custom counters/statuses
 ```
 Any change to `qml/js/gamestate.js` must keep this green.
 
@@ -45,14 +59,23 @@ Any change to `qml/js/gamestate.js` must keep this green.
 - `qml/js/gamestate.js` — the entire game engine. Plain serializable objects;
   every mutation via `applyAction()`, which snapshots for undo. See file header.
 - `qml/harbour-frostlife.qml` — owns the game object; exposes `app.act()`,
-  `app.rev` (bump-on-change; UI binds to it), undo/redo, autosave, keep-awake.
-- `qml/components/Palette.qml` — dark-first Frostbite tokens (singleton).
-- `qml/components/PlayerPanel.qml` — one player tile (tap zones, chips).
-- `qml/pages/` — main grid, player detail (counters + cmd damage), new-game dialog.
+  `app.rev` (bump-on-change; UI binds to it), `app.pal` (dark-first Frostbite
+  tokens — a QtObject on the root, deliberately NOT a qmldir singleton),
+  undo/redo, autosave, keep-awake.
+- `qml/components/PlayerPanel.qml` — one player tile: full-panel life tap
+  zones, then name row / clipped pill area / status chip row reserved
+  structurally; compact mode + overflow when space runs out.
+- `qml/components/CounterPill.qml`, `CounterChip.qml` — interactive −/+ pill
+  and display-only chip; `StepperRow.qml` — label/−/value/+ row on the
+  detail page.
+- `qml/pages/` — main layout (Column of Rows), player detail (counters +
+  cmd damage matrix), history (log + undo/redo), new-game dialog.
 - `qml/cover/CoverPage.qml` — backgrounded view.
 
 ## Known limitations / next steps
-- QML has NOT yet been visually verified — first run on emulator/device pending.
 - Odd player counts put the last player full-width at the bottom (no 90° side seats yet).
-- No storm counter, dice/coin, seating randomizer, timers, or Scryfall art yet.
+- No storm counter, dice/coin, seating randomizer, timers, per-game stats, or Scryfall art yet.
 - Landscape locked out for now (portrait only).
+- Compact-mode and chip-row capacities are estimated from counts/character
+  widths (clipping is the backstop) — extreme custom-counter names may trip
+  "+N" overflow slightly early or late.
