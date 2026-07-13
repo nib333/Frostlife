@@ -30,15 +30,10 @@ Rectangle {
     // read-through helpers; `app.rev` dependency forces re-evaluation
     readonly property var pl: app.rev >= 0 ? app.game.players[playerIndex] : null
 
-    // Explicit, deterministic width budget for the damage-pill column —
-    // NOT left to Qt Quick's implicit Column/Grid size cache. That cache
-    // can grow to fit a transiently-wide pill and never shrink back down
-    // (Qt Quick positioners are prone to this — the same bug class as
-    // the cover-action geometry corruption fixed earlier), which drags
-    // the life number's centering off with it since the life number
-    // shares a column-width computation with the damage stack. Every
-    // pill caps its own label to this same value via maxWidth, so the
-    // column can never need to be wider than this in the first place.
+    // Explicit, deterministic width budget for the pill columns — set
+    // structurally, never derived from rendered content. Every pill caps
+    // its own width AND label to this value via maxWidth, so a long
+    // commander/counter name can never widen a column past it.
     readonly property real pillColW: panel.width * (panel.wideLayout ? 0.3 : 0.72)
 
     // ---- compact mode: collapse the pill stack when it can't fit ----
@@ -86,20 +81,20 @@ Rectangle {
     // contentArea clips whatever still won't fit.
     readonly property real _pillH: Theme.itemSizeExtraSmall * 0.72 + Theme.paddingSmall / 2
     readonly property real _lifeH: Math.min(height * 0.42, Theme.fontSizeHuge * 2.2) * 1.2
-    // stacked: everything shares the vertical budget; wide: the damage
-    // column has the whole content-area height to itself
+    // Life is CENTERED by construction (anchors, not flow), so in
+    // stacked mode each pill column owns the half of the content area
+    // on its side of the life number: damage above, counters below.
+    // Wide mode: full content-area height per side column.
+    readonly property real _halfBudget: (contentArea.height - _lifeH) / 2
     readonly property bool compact: wideLayout
         ? dmgAgg.n * _pillH > contentArea.height
-        : (dmgAgg.n + counterPills.length) * _pillH + _lifeH > contentArea.height
+        : dmgAgg.n * _pillH > _halfBudget
 
     // ---- space priority: life, then damage pill(s), then counters ----
-    // stacked: counters get what remains after life + damage are reserved;
-    // wide: their own column, so the full content-area height
     readonly property int counterCapacity: {
         if (wideLayout) return Math.max(0, Math.floor(contentArea.height / _pillH))
-        var dmgH = compact ? (dmgAgg.n > 0 ? _pillH : 0) : dmgAgg.n * _pillH
-        var rows = Math.max(0, Math.floor((contentArea.height - _lifeH - dmgH) / _pillH))
-        return compact ? rows * 2 : rows
+        var rows = Math.max(0, Math.floor(_halfBudget / _pillH))
+        return compact ? rows * 2 : rows   // compact renders 2 columns
     }
     readonly property int countersShown: counterPills.length <= counterCapacity
         ? counterPills.length
@@ -230,127 +225,143 @@ Rectangle {
             rightMargin: panel.cutoutEdge === "right" ? Theme.itemSizeExtraSmall : 0
         }
 
-        Grid { // stacked: one column, damage → life → counters;
-               // wide (side seats): damage | life | counters side by side
-            anchors.centerIn: parent
-            // Explicit width in stacked (rows) mode only: Grid's implicit
-            // width (max child width) could previously grow to fit a
-            // transiently-wide damage pill and never shrink back,
-            // dragging every other child's centering (incl. the life
-            // number) off with it. wideLayout keeps implicit sizing here
-            // — its 3-column side-by-side arrangement isn't the reported
-            // bug, left untouched to avoid regressing an already-verified
-            // layout.
-            width: panel.wideLayout ? undefined : panel.pillColW
-            columns: panel.wideLayout ? 3 : 1
-            rowSpacing: 0
-            columnSpacing: Theme.paddingLarge
-            horizontalItemAlignment: Grid.AlignHCenter
-            verticalItemAlignment: Grid.AlignVCenter
+        /* Life is the ANCHOR element: centered in the panel by anchors,
+         * not positioner flow, so pill columns appearing/disappearing
+         * can NEVER move it. The damage and counter columns arrange
+         * themselves around it — above/below in stacked (rows) mode,
+         * left/right of it in wide (side-seat) mode. The previous
+         * flow-Grid put life in a cell between its siblings: on-device
+         * diag showed it off-center even at baseline, drifting further
+         * as pills came and went — and pinning that Grid's width was
+         * dimensionally impossible since it contains the life number,
+         * which is wider than the pill-column budget.
+         * (The anchor ternaries return undefined to UNSET a line —
+         * valid for anchors, which are resettable, unlike the width
+         * binding where undefined killed the whole binding.) */
 
-            Grid { // commander damage received — the urgent pills. Grid,
-                   // not Column: horizontalItemAlignment centers each
-                   // pill within the reserved width instead of Column's
-                   // default left-alignment. Width is explicit
-                   // (panel.pillColW), not implicit-fit-to-content, so it
-                   // can never grow from a transiently-wide pill and fail
-                   // to shrink back — see panel.pillColW.
-                width: panel.pillColW
-                columns: 1
-                rowSpacing: Theme.paddingSmall / 2
-                horizontalItemAlignment: Grid.AlignHCenter
-                visible: !panel.compact
-                Repeater {
-                    model: app.rev >= 0 ? app.game.players.length * 2 : 0 // source × partner slot
-                    delegate: CounterPill {
-                        readonly property int src: Math.floor(index / 2)
-                        readonly property int slot: index % 2
-                        label: app.rev >= 0 && src !== panel.playerIndex
-                               ? "⚔ " + app.cmdLabel(src, slot) : ""
-                        value: app.rev >= 0 && src !== panel.playerIndex
-                               ? panel.pl.cmdDamage[src][slot] : 0
-                        accent: app.pal.error
-                        // cap so the life −/+ corridors stay clear: wide mode
-                        // fits two side columns; tall rows-mode pills keep
-                        // tappable margins at both edges
-                        maxWidth: panel.pillColW
-                        action: ({ type: "cmdDamage", player: panel.playerIndex,
-                                   source: src, slot: slot })
-                    }
+        Label { // life total — the hero number, centered by construction
+            id: lifeLabel
+            anchors.centerIn: parent
+            text: pl ? pl.life : ""
+            color: pl && pl.dead ? app.pal.mutedText : app.pal.primaryText
+            font.pixelSize: Math.min((panel.wideLayout ? panel.width : panel.height) * 0.42,
+                                     Theme.fontSizeHuge * 2.2)
+            font.bold: true
+
+            Label { // accumulated life delta (see panel properties);
+                    // a child so it follows the number in both layouts
+                    // and rotates with the panel, without affecting
+                    // the life number's own centering
+                id: deltaLabel
+                opacity: 0
+                visible: opacity > 0
+                text: panel._lifeDelta > 0 ? "+" + panel._lifeDelta
+                                           : "−" + (-panel._lifeDelta)
+                color: panel._lifeDelta > 0 ? app.pal.success : app.pal.error
+                font.pixelSize: Theme.fontSizeLarge
+                font.bold: true
+                anchors {
+                    left: parent.right
+                    leftMargin: Theme.paddingSmall
+                    verticalCenter: parent.verticalCenter
                 }
             }
+        }
 
-            CounterChip { // compact: one aggregate pill; tap opens the full matrix
-                visible: panel.compact && panel.dmgAgg.n > 0
-                glyph: "⚔ " + panel.dmgAgg.max
-                       + (panel.dmgAgg.n > 1 ? " +" + (panel.dmgAgg.n - 1) : "")
-                accent: app.pal.error
-                // same cap as the individual damage pills — the aggregate
-                // glyph is normally short/numeric, but this keeps every
-                // damage-pill path capped with no exceptions
-                maxWidth: panel.pillColW
+        Grid { // commander damage received — the urgent pills.
+               // Stacked: above the life number; wide: left of it.
+               // Grid, not Column: horizontalItemAlignment centers each
+               // pill within the reserved pillColW width.
+            width: panel.pillColW
+            columns: 1
+            rowSpacing: Theme.paddingSmall / 2
+            horizontalItemAlignment: Grid.AlignHCenter
+            visible: !panel.compact
+            anchors {
+                horizontalCenter: panel.wideLayout ? undefined : parent.horizontalCenter
+                bottom: panel.wideLayout ? undefined : lifeLabel.top
+                right: panel.wideLayout ? lifeLabel.left : undefined
+                verticalCenter: panel.wideLayout ? parent.verticalCenter : undefined
+                rightMargin: Theme.paddingLarge
+            }
+            Repeater {
+                model: app.rev >= 0 ? app.game.players.length * 2 : 0 // source × partner slot
+                delegate: CounterPill {
+                    readonly property int src: Math.floor(index / 2)
+                    readonly property int slot: index % 2
+                    label: app.rev >= 0 && src !== panel.playerIndex
+                           ? "⚔ " + app.cmdLabel(src, slot) : ""
+                    value: app.rev >= 0 && src !== panel.playerIndex
+                           ? panel.pl.cmdDamage[src][slot] : 0
+                    accent: app.pal.error
+                    // cap so the life −/+ corridors stay clear: wide mode
+                    // fits two side columns; tall rows-mode pills keep
+                    // tappable margins at both edges
+                    maxWidth: panel.pillColW
+                    action: ({ type: "cmdDamage", player: panel.playerIndex,
+                               source: src, slot: slot })
+                }
+            }
+        }
+
+        CounterChip { // compact: one aggregate pill in the damage slot;
+                      // tap opens the full matrix
+            visible: panel.compact && panel.dmgAgg.n > 0
+            glyph: "⚔ " + panel.dmgAgg.max
+                   + (panel.dmgAgg.n > 1 ? " +" + (panel.dmgAgg.n - 1) : "")
+            accent: app.pal.error
+            // same cap as the individual damage pills — the aggregate
+            // glyph is normally short/numeric, but this keeps every
+            // damage-pill path capped with no exceptions
+            maxWidth: panel.pillColW
+            anchors {
+                horizontalCenter: panel.wideLayout ? undefined : parent.horizontalCenter
+                bottom: panel.wideLayout ? undefined : lifeLabel.top
+                right: panel.wideLayout ? lifeLabel.left : undefined
+                verticalCenter: panel.wideLayout ? parent.verticalCenter : undefined
+                rightMargin: Theme.paddingLarge
+            }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: panel.detailRequested(panel.playerIndex)
+            }
+        }
+
+        Grid { // counter pills — stacked: below the life number (one
+               // column; two when compact); wide: right of it (one
+               // column). Only countersShown render — counters get
+               // their own half/side, never the damage pills' or the
+               // life number's space.
+            columns: panel.wideLayout ? 1 : (panel.compact ? 2 : 1)
+            columnSpacing: Theme.paddingSmall
+            rowSpacing: Theme.paddingSmall / 2
+            horizontalItemAlignment: Grid.AlignHCenter
+            anchors {
+                horizontalCenter: panel.wideLayout ? undefined : parent.horizontalCenter
+                top: panel.wideLayout ? undefined : lifeLabel.bottom
+                left: panel.wideLayout ? lifeLabel.right : undefined
+                verticalCenter: panel.wideLayout ? parent.verticalCenter : undefined
+                leftMargin: Theme.paddingLarge
+            }
+            Repeater {
+                model: panel.countersShown
+                delegate: CounterPill {
+                    readonly property var cp: index < panel.counterPills.length
+                                              ? panel.counterPills[index] : null
+                    label: cp ? cp.label : ""
+                    accent: cp ? cp.accent : app.pal.mutedText
+                    value: cp ? cp.value : 0
+                    maxWidth: panel.pillColW
+                    action: cp ? cp.action : ({})
+                }
+            }
+            CounterChip { // "+N" overflow; tap opens the detail page
+                visible: panel.counterPills.length > panel.countersShown
+                glyph: "+" + (panel.counterPills.length - panel.countersShown)
+                accent: app.pal.mutedText
                 MouseArea {
                     anchors.fill: parent
                     onClicked: panel.detailRequested(panel.playerIndex)
-                }
-            }
-
-            Label { // life total — the hero number. Wide panels scale from
-                    // width so the font doesn't shrink needlessly.
-                text: pl ? pl.life : ""
-                color: pl && pl.dead ? app.pal.mutedText : app.pal.primaryText
-                font.pixelSize: Math.min((panel.wideLayout ? panel.width : panel.height) * 0.42,
-                                         Theme.fontSizeHuge * 2.2)
-                font.bold: true
-
-                Label { // accumulated life delta (see panel properties);
-                        // a child so it follows the number in both layouts
-                        // and rotates with the panel, without affecting
-                        // the Grid's centering
-                    id: deltaLabel
-                    opacity: 0
-                    visible: opacity > 0
-                    text: panel._lifeDelta > 0 ? "+" + panel._lifeDelta
-                                               : "−" + (-panel._lifeDelta)
-                    color: panel._lifeDelta > 0 ? app.pal.success : app.pal.error
-                    font.pixelSize: Theme.fontSizeLarge
-                    font.bold: true
-                    anchors {
-                        left: parent.right
-                        leftMargin: Theme.paddingSmall
-                        verticalCenter: parent.verticalCenter
-                    }
-                }
-            }
-
-            Grid { // counter pills: one centered column; two when the
-                   // stacked arrangement is compact (wide keeps one).
-                   // Only countersShown render — counters get the leftover
-                   // space, never the damage pill's or life number's.
-                columns: panel.wideLayout ? 1 : (panel.compact ? 2 : 1)
-                columnSpacing: Theme.paddingSmall
-                rowSpacing: Theme.paddingSmall / 2
-                horizontalItemAlignment: Grid.AlignHCenter
-                Repeater {
-                    model: panel.countersShown
-                    delegate: CounterPill {
-                        readonly property var cp: index < panel.counterPills.length
-                                                  ? panel.counterPills[index] : null
-                        label: cp ? cp.label : ""
-                        accent: cp ? cp.accent : app.pal.mutedText
-                        value: cp ? cp.value : 0
-                        maxWidth: panel.pillColW
-                        action: cp ? cp.action : ({})
-                    }
-                }
-                CounterChip { // "+N" overflow; tap opens the detail page
-                    visible: panel.counterPills.length > panel.countersShown
-                    glyph: "+" + (panel.counterPills.length - panel.countersShown)
-                    accent: app.pal.mutedText
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: panel.detailRequested(panel.playerIndex)
-                    }
                 }
             }
         }

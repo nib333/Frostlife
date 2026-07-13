@@ -17,24 +17,34 @@ Rectangle {
     // the value and both tap zones never shrink. 0 = unconstrained.
     property real maxWidth: 0
 
-    // room left for the label once pill padding, both tap zones
-    // (pill.height * 1.1 each) and the value are reserved. Sized off
-    // pill.height (a fixed theme constant), NOT prow.height — prow's
-    // height is the auto-derived max of its children, and those
-    // children were previously sized FROM prow.height, a circular
-    // binding that resolved inconsistently per pill (a lone pill vs.
-    // pills stacked with siblings landed on different values), which is
-    // why the same label truncated correctly in one panel but not
-    // another with identical maxWidth.
-    readonly property real _labelMax: Math.max(0, maxWidth - Theme.paddingSmall
-                                               - pill.height * 2.2 - Theme.fontSizeMedium)
+    // Tap-zone width: a FIXED theme constant. History of this line —
+    // prow.height was circular (Row height derives from these very
+    // children) and resolved inconsistently per pill; pill.height was
+    // deterministic but far too large (76 px on device — ×2.2 consumed
+    // the whole label budget, _labelMax hit 0 and truncation disabled
+    // entirely, confirmed by on-device diag numbers). fontSizeMedium×1.4
+    // ≈ the tap width the original working layout resolved to.
+    readonly property real _tapW: Theme.fontSizeMedium * 1.4
+
+    // room left for the label once pill padding, both tap zones and the
+    // value are reserved. Floored at one fontSizeMedium so truncation
+    // NEVER disables (a 0/negative width Label paints at implicit width
+    // — that's the uncapped-Thrasios bug); the pill's own width bound
+    // below is the backstop if the floor overshoots a tiny budget.
+    readonly property real _labelMax: Math.max(Theme.fontSizeMedium,
+                                               maxWidth - Theme.paddingSmall
+                                               - _tapW * 2 - Theme.fontSizeMedium)
 
     visible: value > 0   // appears once nonzero, hides at 0
     radius: height / 2
     color: Qt.rgba(0.15, 0.20, 0.24, 0.55)
     border.color: app.pal.hairline
     border.width: 1
-    width: prow.width + Theme.paddingSmall
+    // hard-bounded by maxWidth: whatever the content resolves to, the
+    // pill can never exceed its cap (and so can never inflate a parent
+    // positioner's implicit width past the reserved column)
+    width: maxWidth > 0 ? Math.min(prow.width + Theme.paddingSmall, maxWidth)
+                        : prow.width + Theme.paddingSmall
     height: Theme.itemSizeExtraSmall * 0.72
 
     function bump(d) {
@@ -42,13 +52,12 @@ Rectangle {
         for (var k in action) a[k] = action[k]
         app.act(a)
     }
-
     Row {
         id: prow
         anchors.centerIn: parent
         spacing: 0
         MouseArea {
-            width: pill.height * 1.1; height: pill.height
+            width: pill._tapW; height: pill.height
             onClicked: pill.bump(-1)
             Label { text: "−"; anchors.centerIn: parent
                     color: parent.pressed ? app.pal.frostBlue : app.pal.mutedText
@@ -69,7 +78,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
                 anchors.verticalCenter: parent.verticalCenter }
         MouseArea {
-            width: pill.height * 1.1; height: pill.height
+            width: pill._tapW; height: pill.height
             onClicked: pill.bump(+1)
             Label { text: "+"; anchors.centerIn: parent
                     color: parent.pressed ? app.pal.frostBlue : app.pal.mutedText
