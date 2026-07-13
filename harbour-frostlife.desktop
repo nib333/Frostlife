@@ -4,3 +4,8 @@ Name=Frostlife
 Icon=harbour-frostlife
 Exec=sailfish-qml harbour-frostlife
 X-Nemo-Application-Type=silica-qt5
+
+[X-Sailjail]
+OrganizationName=org.nib333
+ApplicationName=harbour-frostlife
+Permissions=

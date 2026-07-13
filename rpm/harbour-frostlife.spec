@@ -4,6 +4,7 @@ Version:    1.0.0
 Release:    1
 License:    MIT
 URL:        https://github.com/nib333/Frostlife
+BuildArch:  noarch
 Source0:    %{name}-%{version}.tar.bz2
 Requires:   sailfishsilica-qt5 >= 0.10.9
 Requires:   libsailfishapp-launcher
