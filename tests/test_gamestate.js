@@ -540,6 +540,14 @@ ok(G.commanderLabel(gh.players[1], 0) === "🐢🐢🐢", "emoji commander label
 G.undo(g);
 ok(g.log[g.log.length - 1].text.indexOf("undo:") === 0, "log text with hostile name still labels undo");
 
+/* ---- stats name normalization ---- */
+section("stats name normalization");
+ok(G.nameKey("Masa") === G.nameKey("masa "), "trim + case fold: same key");
+ok(G.nameKey("  MASA  ") === "masa", "key is the trimmed lowercase form");
+ok(G.nameKey(null) === "" && G.nameKey(undefined) === "", "non-strings normalize to empty");
+ok(G.nameKey("Åsa") === G.nameKey("åsa"), "unicode case folding");
+ok(G.nameKey("Player 1") !== G.nameKey("Player 2"), "distinct names stay distinct");
+
 console.log("\n=========================");
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);

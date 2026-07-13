@@ -1,10 +1,12 @@
 import QtQuick 2.6
 import Sailfish.Silica 1.0
+import "../js/gamestate.js" as Game
 
 /* Per-game stats across all finished games (app.statsRecords, most
- * recent 200). Player NAME is the identity key: renaming a player
- * mid-history splits their stats — accepted v1 behavior, noted on the
- * page. */
+ * recent 200). Player NAME is the identity key — normalized via
+ * Game.nameKey (trimmed, case-insensitive), displayed with the most
+ * recent casing. A genuine rename still splits stats — accepted v1
+ * behavior, noted on the page. */
 Page {
     id: page
 
@@ -15,13 +17,16 @@ Page {
     readonly property var records: app.statsRev >= 0 ? app.statsRecords() : []
     readonly property var standings: {
         var byName = {}
-        for (var r = 0; r < records.length; r++) {
+        for (var r = 0; r < records.length; r++) {   // oldest → newest
             var rec = records[r]
             for (var p = 0; p < rec.players.length; p++) {
-                var nm = rec.players[p]
-                if (!byName[nm]) byName[nm] = { name: nm, played: 0, wins: 0 }
-                byName[nm].played++
-                if (rec.winner === nm) byName[nm].wins++
+                var key = Game.nameKey(rec.players[p])
+                if (!key) continue
+                if (!byName[key]) byName[key] = { name: "", played: 0, wins: 0 }
+                // newest record wins the displayed casing
+                byName[key].name = String(rec.players[p]).trim()
+                byName[key].played++
+                if (Game.nameKey(rec.winner) === key) byName[key].wins++
             }
         }
         var out = []
@@ -60,7 +65,7 @@ Page {
                 wrapMode: Text.WordWrap
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: app.pal.mutedText
-                text: qsTr("Stats are keyed by player name — renaming a player starts a new line.")
+                text: qsTr("Stats are keyed by player name (capitalization and spacing ignored) — renaming a player starts a new line.")
             }
 
             Label {

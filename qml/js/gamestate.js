@@ -443,6 +443,13 @@ function shuffleSeats(game, rand) {
     return game;
 }
 
+/* Stats identity key. Records key players by NAME across games, and
+ * "Masa" / "masa " are the same human: aggregate on the trimmed,
+ * case-insensitive form (display keeps whatever casing was typed). */
+function nameKey(name) {
+    return String(name || "").trim().toLowerCase();
+}
+
 /* Finished-game record for the stats store. Pure summarizer — the
  * engine does NOT store stats (they span games; the app keeps them in
  * dconf). Winner is recorded by NAME: records outlive the game object
@@ -518,6 +525,7 @@ if (typeof module !== "undefined" && module.exports) {
         newGameFrom: newGameFrom,
         shuffleSeats: shuffleSeats,
         summarizeGame: summarizeGame,
+        nameKey: nameKey,
         serialize: serialize, deserialize: deserialize,
         totalCmdDamage: totalCmdDamage,
         commanderLabel: commanderLabel,
