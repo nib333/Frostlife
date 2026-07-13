@@ -48,7 +48,7 @@ harbour-frostlife/
 │   ├── pages/                    # MainPage, per-player panels, settings
 │   ├── cover/CoverPage.qml       # life totals shown when backgrounded
 │   └── js/                       # game logic modules (damage model, history)
-└── src/harbour-frostlife.cpp     # stock SailfishApp::main()
+└── harbour-frostlife.desktop
 ```
 
 ## Architecture — the parts that need care
