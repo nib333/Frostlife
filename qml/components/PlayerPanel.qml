@@ -314,19 +314,39 @@ Rectangle {
         }
     }
 
-    // ---- eliminated overlay ----
+    // ---- eliminated overlay: the player is frozen out ----
     Rectangle {
         anchors.fill: parent
         radius: panel.radius
         color: app.pal.deadOverlay
         visible: pl ? pl.dead : false
-        Label {
-            text: "☠"
-            font.pixelSize: Theme.fontSizeHuge
-            color: app.pal.mutedText
-            anchors.centerIn: parent
-        }
         // still allow taps through to fix mistakes (life can be corrected)
         enabled: false
+
+        Row { // ❄ ☠ ❄ — frost-blue, calm, not cartoonish
+            anchors.centerIn: parent
+            spacing: Theme.paddingLarge
+            Label {
+                text: "❄"
+                font.pixelSize: Theme.fontSizeHuge * 0.9
+                color: app.pal.frostBlue
+                opacity: 0.4
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Label {
+                text: "☠"
+                font.pixelSize: Theme.fontSizeHuge * 2
+                color: app.pal.frostBlue
+                opacity: 0.9
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            Label {
+                text: "❄"
+                font.pixelSize: Theme.fontSizeHuge * 0.9
+                color: app.pal.frostBlue
+                opacity: 0.4
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
     }
 }
