@@ -1,5 +1,7 @@
 # Frostlife
 
+<img src="https://img.shields.io/liberapay/receives/nib333.svg?logo=liberapay">
+
 Frostlife from Frostbite — a dark-first, EDH-focused Magic: The Gathering
 life counter for Sailfish OS.
 Target device: 2026 Jolla Phone (aarch64, Sailfish OS 5.2, AMOLED).
