@@ -82,123 +82,148 @@ Page {
             }
         }
 
-        // Explicit rows instead of Grid: Grid sizes a column to its widest
-        // child, so a full-width last panel (odd player counts) inflated
-        // column 0 and pushed every second panel off the right edge.
-        Column {
-            id: layout
-            anchors { fill: parent; margins: gutter }
-            spacing: gutter
+        Loader {
+            id: layoutLoader
+            anchors.fill: parent
+            sourceComponent: layoutComponent
+            // Rebuild the whole panel tree whenever the app returns to the
+            // foreground: layout-affecting actions triggered from a cover
+            // action while minimized left permanently-stale panel geometry
+            // (Qt positioner layout caches don't re-polish from that state,
+            // and no binding reaches them). Recreating the tree derives
+            // everything from live window dimensions again. Panel count is
+            // tiny, so the rebuild on resume is unnoticeable.
+            Connections {
+                target: Qt.application
+                onStateChanged: if (Qt.application.state === Qt.ApplicationActive) {
+                    layoutLoader.sourceComponent = undefined
+                    layoutLoader.sourceComponent = layoutComponent
+                }
+            }
+        }
+    }
 
-            Repeater {
-                model: page.around ? 0 : page.seatRows.length
-                delegate: Row {
-                    readonly property var seats: page.seatRows[index]
-                    readonly property bool isTopRow: index === 0
-                    readonly property bool isBottomRow: index === page.seatRows.length - 1
-                    width: layout.width
-                    height: (layout.height - gutter * (page.seatRows.length - 1))
-                            / page.seatRows.length
-                    spacing: gutter
+    Component {
+        id: layoutComponent
+        Item {
+            // Explicit rows instead of Grid: Grid sizes a column to its widest
+            // child, so a full-width last panel (odd player counts) inflated
+            // column 0 and pushed every second panel off the right edge.
+            Column {
+                id: layout
+                anchors { fill: parent; margins: gutter }
+                spacing: gutter
 
-                    Repeater {
-                        model: seats.length
-                        delegate: PlayerPanel {
-                            readonly property int seat: seats[index]
-                            playerIndex: seat
-                            cutoutEdge: isTopRow ? "bottom" : ""
-                            // everyone except the bottom row faces the players across
-                            flipped: !isBottomRow
-                            width: seats.length === 1 ? parent.width
-                                                      : (parent.width - gutter) / 2
-                            height: parent.height
-                            onDetailRequested: pageStack.push(
-                                Qt.resolvedUrl("PlayerDetailPage.qml"),
-                                { playerIndex: playerIndex })
+                Repeater {
+                    model: page.around ? 0 : page.seatRows.length
+                    delegate: Row {
+                        readonly property var seats: page.seatRows[index]
+                        readonly property bool isTopRow: index === 0
+                        readonly property bool isBottomRow: index === page.seatRows.length - 1
+                        width: layout.width
+                        height: (layout.height - gutter * (page.seatRows.length - 1))
+                                / page.seatRows.length
+                        spacing: gutter
+
+                        Repeater {
+                            model: seats.length
+                            delegate: PlayerPanel {
+                                readonly property int seat: seats[index]
+                                playerIndex: seat
+                                cutoutEdge: isTopRow ? "bottom" : ""
+                                // everyone except the bottom row faces the players across
+                                flipped: !isBottomRow
+                                width: seats.length === 1 ? parent.width
+                                                          : (parent.width - gutter) / 2
+                                height: parent.height
+                                onDetailRequested: pageStack.push(
+                                    Qt.resolvedUrl("PlayerDetailPage.qml"),
+                                    { playerIndex: playerIndex })
+                            }
                         }
                     }
                 }
             }
-        }
 
-        // Around-the-table: seats walk the table starting at the upper
-        // left — down the left side, across the bottom, up the right
-        // side, across the top — so turn order runs around the table.
-        // Side seats rotate +90 (left, readable from the phone's left
-        // side) / -90 (right) and get the TRANSPOSED cell dimensions
-        // (rotation is about the center), so the panel-internal priority
-        // layout and compact budget compute from the player's own visual
-        // dimensions. 5p adds a full-width upright bottom seat; 6p adds a
-        // flipped top seat as well.
-        Item {
-            id: aroundLayout
-            visible: page.around
-            anchors { fill: parent; margins: gutter }
+            // Around-the-table: seats walk the table starting at the upper
+            // left — down the left side, across the bottom, up the right
+            // side, across the top — so turn order runs around the table.
+            // Side seats rotate +90 (left, readable from the phone's left
+            // side) / -90 (right) and get the TRANSPOSED cell dimensions
+            // (rotation is about the center), so the panel-internal priority
+            // layout and compact budget compute from the player's own visual
+            // dimensions. 5p adds a full-width upright bottom seat; 6p adds a
+            // flipped top seat as well.
+            Item {
+                id: aroundLayout
+                visible: page.around
+                anchors { fill: parent; margins: gutter }
 
-            // seat descriptors: cell rect + rotation, in player order
-            readonly property var seats: {
-                var W = width, H = height, g = page.gutter
-                var colW = (W - g) / 2
-                if (page.n === 4) {
-                    var rH = (H - g) / 2
-                    return [
-                        { x: 0,        y: 0,      w: colW, h: rH, rot: 90 },
-                        { x: 0,        y: rH + g, w: colW, h: rH, rot: 90 },
-                        { x: colW + g, y: rH + g, w: colW, h: rH, rot: -90 },
-                        { x: colW + g, y: 0,      w: colW, h: rH, rot: -90 }
-                    ]
+                // seat descriptors: cell rect + rotation, in player order
+                readonly property var seats: {
+                    var W = width, H = height, g = page.gutter
+                    var colW = (W - g) / 2
+                    if (page.n === 4) {
+                        var rH = (H - g) / 2
+                        return [
+                            { x: 0,        y: 0,      w: colW, h: rH, rot: 90 },
+                            { x: 0,        y: rH + g, w: colW, h: rH, rot: 90 },
+                            { x: colW + g, y: rH + g, w: colW, h: rH, rot: -90 },
+                            { x: colW + g, y: 0,      w: colW, h: rH, rot: -90 }
+                        ]
+                    }
+                    if (page.n === 5) {
+                        var bH = (H - g * 2) * 0.30, sH = (H - g * 2) * 0.35
+                        return [
+                            { x: 0,        y: 0,              w: colW, h: sH, rot: 90 },
+                            { x: 0,        y: sH + g,         w: colW, h: sH, rot: 90 },
+                            { x: 0,        y: sH * 2 + g * 2, w: W,    h: bH, rot: 0 },
+                            { x: colW + g, y: sH + g,         w: colW, h: sH, rot: -90 },
+                            { x: colW + g, y: 0,              w: colW, h: sH, rot: -90 }
+                        ]
+                    }
+                    if (page.n === 6) {
+                        var tH = (H - g * 3) * 0.22, mH = (H - g * 3) * 0.28
+                        return [
+                            { x: 0,        y: tH + g,              w: colW, h: mH, rot: 90 },
+                            { x: 0,        y: tH + mH + g * 2,     w: colW, h: mH, rot: 90 },
+                            { x: 0,        y: tH + mH * 2 + g * 3, w: W,    h: tH, rot: 0 },
+                            { x: colW + g, y: tH + mH + g * 2,     w: colW, h: mH, rot: -90 },
+                            { x: colW + g, y: tH + g,              w: colW, h: mH, rot: -90 },
+                            { x: 0,        y: 0,                   w: W,    h: tH, rot: 180 }
+                        ]
+                    }
+                    return []
                 }
-                if (page.n === 5) {
-                    var bH = (H - g * 2) * 0.30, sH = (H - g * 2) * 0.35
-                    return [
-                        { x: 0,        y: 0,              w: colW, h: sH, rot: 90 },
-                        { x: 0,        y: sH + g,         w: colW, h: sH, rot: 90 },
-                        { x: 0,        y: sH * 2 + g * 2, w: W,    h: bH, rot: 0 },
-                        { x: colW + g, y: sH + g,         w: colW, h: sH, rot: -90 },
-                        { x: colW + g, y: 0,              w: colW, h: sH, rot: -90 }
-                    ]
-                }
-                if (page.n === 6) {
-                    var tH = (H - g * 3) * 0.22, mH = (H - g * 3) * 0.28
-                    return [
-                        { x: 0,        y: tH + g,              w: colW, h: mH, rot: 90 },
-                        { x: 0,        y: tH + mH + g * 2,     w: colW, h: mH, rot: 90 },
-                        { x: 0,        y: tH + mH * 2 + g * 3, w: W,    h: tH, rot: 0 },
-                        { x: colW + g, y: tH + mH + g * 2,     w: colW, h: mH, rot: -90 },
-                        { x: colW + g, y: tH + g,              w: colW, h: mH, rot: -90 },
-                        { x: 0,        y: 0,                   w: W,    h: tH, rot: 180 }
-                    ]
-                }
-                return []
-            }
 
-            Repeater {
-                model: aroundLayout.seats.length
-                delegate: PlayerPanel {
-                    readonly property var seat: aroundLayout.seats[index]
-                    readonly property bool side: seat.rot === 90 || seat.rot === -90
+                Repeater {
+                    model: aroundLayout.seats.length
+                    delegate: PlayerPanel {
+                        readonly property var seat: aroundLayout.seats[index]
+                        readonly property bool side: seat.rot === 90 || seat.rot === -90
 
-                    playerIndex: index
-                    seatRotation: seat.rot
-                    // every around-mode panel is wide-aspect (side seats
-                    // by transposition, top/bottom by full width) — the
-                    // tall stacked arrangement is exclusively rows-mode
-                    wideLayout: true
-                    // side seats: transposed — panel width runs along the
-                    // screen's vertical
-                    width: side ? seat.h : seat.w
-                    height: side ? seat.w : seat.h
-                    x: seat.x + (seat.w - width) / 2
-                    y: seat.y + (seat.h - height) / 2
-                    // whichever LOCAL edge lies along the physical screen
-                    // top gets the camera-cutout clearance
-                    cutoutEdge: seat.rot === 180 ? "bottom"
-                              : seat.y === 0 && seat.rot === 90 ? "left"
-                              : seat.y === 0 && seat.rot === -90 ? "right"
-                              : ""
-                    onDetailRequested: pageStack.push(
-                        Qt.resolvedUrl("PlayerDetailPage.qml"),
-                        { playerIndex: playerIndex })
+                        playerIndex: index
+                        seatRotation: seat.rot
+                        // every around-mode panel is wide-aspect (side seats
+                        // by transposition, top/bottom by full width) — the
+                        // tall stacked arrangement is exclusively rows-mode
+                        wideLayout: true
+                        // side seats: transposed — panel width runs along the
+                        // screen's vertical
+                        width: side ? seat.h : seat.w
+                        height: side ? seat.w : seat.h
+                        x: seat.x + (seat.w - width) / 2
+                        y: seat.y + (seat.h - height) / 2
+                        // whichever LOCAL edge lies along the physical screen
+                        // top gets the camera-cutout clearance
+                        cutoutEdge: seat.rot === 180 ? "bottom"
+                                  : seat.y === 0 && seat.rot === 90 ? "left"
+                                  : seat.y === 0 && seat.rot === -90 ? "right"
+                                  : ""
+                        onDetailRequested: pageStack.push(
+                            Qt.resolvedUrl("PlayerDetailPage.qml"),
+                            { playerIndex: playerIndex })
+                    }
                 }
             }
         }
