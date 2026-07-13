@@ -12,49 +12,6 @@ Page {
     property int playerIndex: 0
     readonly property var pl: app.rev >= 0 ? app.game.players[playerIndex] : null
 
-    // reusable ± row
-    Component {
-        id: stepper
-        Row {
-            property string label
-            property int value
-            property var onDelta
-            spacing: Theme.paddingMedium
-            width: parent ? parent.width : 0
-            Label {
-                text: label
-                color: app.pal.primaryText
-                width: parent.width * 0.34
-                anchors.verticalCenter: parent.verticalCenter
-                truncationMode: TruncationMode.Fade
-            }
-            IconButton {
-                icon.source: "image://theme/icon-m-remove"
-                onClicked: onDelta(-1)
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            Label {
-                text: value
-                color: app.pal.primaryText
-                font.pixelSize: Theme.fontSizeLarge
-                width: Theme.itemSizeSmall
-                horizontalAlignment: Text.AlignHCenter
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            IconButton {
-                icon.source: "image://theme/icon-m-add"
-                onClicked: onDelta(1)
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            IconButton { // invisible spacer, same width as the custom rows' remove button
-                icon.source: "image://theme/icon-m-clear"
-                opacity: 0
-                enabled: false
-                anchors.verticalCenter: parent.verticalCenter
-            }
-        }
-    }
-
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: col.height + Theme.paddingLarge * 2
@@ -110,24 +67,23 @@ Page {
                     width: col.width
                     visible: index !== playerIndex
                     spacing: Theme.paddingSmall
-                    property var src: app.game.players[index]
+                    readonly property var src: app.rev >= 0 ? app.game.players[index] : null
 
-                    Loader { sourceComponent: stepper; width: parent.width
-                        onLoaded: item.label = src.name + (src.partners ? " · A" : "")
-                        Binding { target: item; property: "value"
-                                  value: pl ? pl.cmdDamage[index][0] : 0 }
-                        Component.onCompleted: item.onDelta = function (d) {
-                            app.act({ type: "cmdDamage", player: playerIndex,
-                                      source: index, slot: 0, delta: d }) } }
-                    Loader { sourceComponent: stepper; width: parent.width
-                        active: src.partners
-                        visible: src.partners
-                        onLoaded: item.label = src.name + " · B"
-                        Binding { target: item; property: "value"
-                                  value: pl ? pl.cmdDamage[index][1] : 0 }
-                        Component.onCompleted: item.onDelta = function (d) {
-                            app.act({ type: "cmdDamage", player: playerIndex,
-                                      source: index, slot: 1, delta: d }) } }
+                    StepperRow {
+                        width: parent.width
+                        label: src ? src.name + (src.partners ? " · A" : "") : ""
+                        value: app.rev >= 0 && pl ? pl.cmdDamage[index][0] : 0
+                        action: ({ type: "cmdDamage", player: playerIndex,
+                                   source: index, slot: 0 })
+                    }
+                    StepperRow {
+                        width: parent.width
+                        visible: src ? src.partners : false
+                        label: src ? src.name + " · B" : ""
+                        value: app.rev >= 0 && pl ? pl.cmdDamage[index][1] : 0
+                        action: ({ type: "cmdDamage", player: playerIndex,
+                                   source: index, slot: 1 })
+                    }
                 }
             }
 
@@ -141,66 +97,42 @@ Page {
 
             SectionHeader { text: qsTr("Counters") }
 
-            Loader { sourceComponent: stepper; width: parent.width
-                onLoaded: { item.label = qsTr("Poison"); }
-                Binding { target: item; property: "value"; value: pl ? pl.counters.poison : 0 }
-                Component.onCompleted: item.onDelta = function (d) {
-                    app.act({ type: "counter", player: playerIndex, counter: "poison", delta: d }) } }
-            Loader { sourceComponent: stepper; width: parent.width
-                onLoaded: { item.label = qsTr("Energy"); }
-                Binding { target: item; property: "value"; value: pl ? pl.counters.energy : 0 }
-                Component.onCompleted: item.onDelta = function (d) {
-                    app.act({ type: "counter", player: playerIndex, counter: "energy", delta: d }) } }
-            Loader { sourceComponent: stepper; width: parent.width
-                onLoaded: { item.label = qsTr("Experience"); }
-                Binding { target: item; property: "value"; value: pl ? pl.counters.experience : 0 }
-                Component.onCompleted: item.onDelta = function (d) {
-                    app.act({ type: "counter", player: playerIndex, counter: "experience", delta: d }) } }
-            Loader { sourceComponent: stepper; width: parent.width
-                onLoaded: { item.label = qsTr("Commander tax (casts)"); }
-                Binding { target: item; property: "value"; value: pl ? pl.counters.cmdTax : 0 }
-                Component.onCompleted: item.onDelta = function (d) {
-                    app.act({ type: "counter", player: playerIndex, counter: "cmdTax", delta: d }) } }
+            StepperRow {
+                width: parent.width
+                label: qsTr("Poison")
+                value: app.rev >= 0 && pl ? pl.counters.poison : 0
+                action: ({ type: "counter", player: playerIndex, counter: "poison" })
+            }
+            StepperRow {
+                width: parent.width
+                label: qsTr("Energy")
+                value: app.rev >= 0 && pl ? pl.counters.energy : 0
+                action: ({ type: "counter", player: playerIndex, counter: "energy" })
+            }
+            StepperRow {
+                width: parent.width
+                label: qsTr("Experience")
+                value: app.rev >= 0 && pl ? pl.counters.experience : 0
+                action: ({ type: "counter", player: playerIndex, counter: "experience" })
+            }
+            StepperRow {
+                width: parent.width
+                label: qsTr("Commander tax (casts)")
+                value: app.rev >= 0 && pl ? pl.counters.cmdTax : 0
+                action: ({ type: "counter", player: playerIndex, counter: "cmdTax" })
+            }
 
             Repeater {
                 model: app.rev >= 0 ? app.game.players[playerIndex].customCounters.length : 0
-                delegate: Row {
+                delegate: StepperRow {
                     width: col.width
-                    spacing: Theme.paddingSmall
-                    readonly property var cc: app.game.players[playerIndex].customCounters[index]
-                    Label {
-                        text: cc.name
-                        color: app.pal.primaryText
-                        width: parent.width * 0.34
-                        anchors.verticalCenter: parent.verticalCenter
-                        truncationMode: TruncationMode.Fade
-                    }
-                    IconButton {
-                        icon.source: "image://theme/icon-m-remove"
-                        onClicked: app.act({ type: "customCounter", player: playerIndex,
-                                             index: index, delta: -1 })
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    Label {
-                        text: cc.value
-                        color: app.pal.primaryText
-                        font.pixelSize: Theme.fontSizeLarge
-                        width: Theme.itemSizeSmall
-                        horizontalAlignment: Text.AlignHCenter
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    IconButton {
-                        icon.source: "image://theme/icon-m-add"
-                        onClicked: app.act({ type: "customCounter", player: playerIndex,
-                                             index: index, delta: +1 })
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
-                    IconButton {
-                        icon.source: "image://theme/icon-m-clear"
-                        onClicked: app.act({ type: "removeCustomCounter", player: playerIndex,
-                                             index: index })
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                    label: app.rev >= 0 && pl && index < pl.customCounters.length
+                           ? pl.customCounters[index].name : ""
+                    value: app.rev >= 0 && pl && index < pl.customCounters.length
+                           ? pl.customCounters[index].value : 0
+                    action: ({ type: "customCounter", player: playerIndex, index: index })
+                    removeAction: ({ type: "removeCustomCounter", player: playerIndex,
+                                     index: index })
                 }
             }
 
