@@ -19,6 +19,19 @@ Page {
     readonly property int n: app.rev >= 0 ? app.game.players.length : 2
     readonly property int gutter: Theme.paddingSmall
 
+    // seats per row: pairs, plus a full-width last row for odd counts;
+    // 2 players stack full-width
+    readonly property var seatRows: {
+        var rows = []
+        if (n <= 2) {
+            for (var i = 0; i < n; i++) rows.push([i])
+        } else {
+            for (var j = 0; j + 1 < n; j += 2) rows.push([j, j + 1])
+            if (n % 2 === 1) rows.push([n - 1])
+        }
+        return rows
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: height // no scrolling; panels fill the screen
@@ -44,30 +57,38 @@ Page {
             }
         }
 
-        Grid {
-            id: grid
+        // Explicit rows instead of Grid: Grid sizes a column to its widest
+        // child, so a full-width last panel (odd player counts) inflated
+        // column 0 and pushed every second panel off the right edge.
+        Column {
+            id: layout
             anchors { fill: parent; margins: gutter }
-            columns: n <= 2 ? 1 : 2
             spacing: gutter
 
             Repeater {
-                model: n
-                PlayerPanel {
-                    playerIndex: index
-                    // top half of the table is flipped to face the players across
-                    flipped: index < Math.floor(n / 2) || (n === 2 && index === 0)
-                    // odd player counts: last panel spans full width
-                    property bool fullRow: (n % 2 === 1) && index === n - 1
-                    width: fullRow || n <= 2
-                           ? grid.width
-                           : (grid.width - gutter) / 2
-                    height: {
-                        var rows = n <= 2 ? n : Math.ceil(n / 2)
-                        return (grid.height - gutter * (rows - 1)) / rows
+                model: page.seatRows.length
+                delegate: Row {
+                    readonly property var seats: page.seatRows[index]
+                    width: layout.width
+                    height: (layout.height - gutter * (page.seatRows.length - 1))
+                            / page.seatRows.length
+                    spacing: gutter
+
+                    Repeater {
+                        model: seats.length
+                        delegate: PlayerPanel {
+                            readonly property int seat: seats[index]
+                            playerIndex: seat
+                            // top half of the table is flipped to face the players across
+                            flipped: seat < Math.floor(page.n / 2) || (page.n === 2 && seat === 0)
+                            width: seats.length === 1 ? parent.width
+                                                      : (parent.width - gutter) / 2
+                            height: parent.height
+                            onDetailRequested: pageStack.push(
+                                Qt.resolvedUrl("PlayerDetailPage.qml"),
+                                { playerIndex: playerIndex })
+                        }
                     }
-                    onDetailRequested: pageStack.push(
-                        Qt.resolvedUrl("PlayerDetailPage.qml"),
-                        { playerIndex: playerIndex })
                 }
             }
         }
