@@ -64,6 +64,7 @@ Page {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 text: page.resultText
+                textFormat: Text.PlainText  // shows player names
                 color: page.revealing ? app.pal.mutedText : app.pal.frostBlue
                 font.pixelSize: Theme.fontSizeHuge * 2.4
                 font.bold: true

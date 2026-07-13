@@ -26,6 +26,7 @@ Row {
 
     Label {
         id: labelItem
+        textFormat: Text.PlainText  // user names are display text, never markup
         color: app.pal.primaryText
         width: srow.width * 0.34
         anchors.verticalCenter: parent.verticalCenter

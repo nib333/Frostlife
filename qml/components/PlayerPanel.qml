@@ -336,6 +336,7 @@ Rectangle {
         Label {
             id: nameLabel
             text: pl ? pl.name : ""
+            textFormat: Text.PlainText
             color: pl && pl.monarch ? app.pal.frostBlue : app.pal.primaryText
             font.pixelSize: Theme.fontSizeMedium
             anchors { top: parent.top; topMargin: Theme.paddingMedium; horizontalCenter: parent.horizontalCenter }

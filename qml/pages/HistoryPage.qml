@@ -64,6 +64,7 @@ Page {
             }
             Label {
                 text: entry ? entry.text : ""
+                textFormat: Text.PlainText  // log lines embed user names
                 color: app.pal.primaryText
                 font.pixelSize: Theme.fontSizeSmall
                 truncationMode: TruncationMode.Fade

@@ -458,8 +458,36 @@ function deserialize(json) {
     var g = JSON.parse(json);
     if (g.schema !== SCHEMA_VERSION)
         throw new Error("unsupported save schema: " + g.schema);
-    // minimal shape validation
-    if (!g.players || !g.players.length) throw new Error("corrupt save: no players");
+    // Strict shape validation: a parseable-but-malformed save must be
+    // REJECTED (callers fall back to a fresh game), never loaded — a
+    // half-broken game object renders as NaN/undefined and autosave
+    // would persist the breakage on every subsequent launch.
+    if (!Array.isArray(g.players) || !g.players.length)
+        throw new Error("corrupt save: no players");
+    var n = g.players.length;
+    for (var i = 0; i < n; i++) {
+        var p = g.players[i];
+        if (!p || typeof p.name !== "string" || typeof p.life !== "number"
+            || !p.counters || typeof p.counters !== "object"
+            || !Array.isArray(p.commanderNames)
+            || !Array.isArray(p.customCounters) || !Array.isArray(p.customStatuses)
+            || !Array.isArray(p.cmdDamage) || p.cmdDamage.length !== n)
+            throw new Error("corrupt save: bad player " + i);
+        for (var s = 0; s < n; s++) {
+            var row = p.cmdDamage[s];
+            if (!Array.isArray(row) || row.length !== 2
+                || typeof row[0] !== "number" || typeof row[1] !== "number")
+                throw new Error("corrupt save: bad cmdDamage " + i + "/" + s);
+        }
+    }
+    // settings: normalize unexpected types to the defaults (true) rather
+    // than reject — only a literal false means false
+    if (!g.settings || typeof g.settings !== "object") g.settings = {};
+    g.settings.cmdDamageAffectsLife = g.settings.cmdDamageAffectsLife !== false;
+    g.settings.autoDeath = g.settings.autoDeath !== false;
+    if (!Array.isArray(g.history)) g.history = [];
+    if (!Array.isArray(g.future)) g.future = [];
+    if (!Array.isArray(g.log)) g.log = [];
     return g;
 }
 

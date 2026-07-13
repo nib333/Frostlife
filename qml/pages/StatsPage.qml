@@ -96,6 +96,7 @@ Page {
                     readonly property var s: index < page.standings.length
                                              ? page.standings[index] : null
                     Label { text: s ? s.name : ""; width: parent.width * 0.46
+                            textFormat: Text.PlainText
                             color: app.pal.primaryText; truncationMode: TruncationMode.Fade }
                     Label { text: s ? s.played : ""; width: parent.width * 0.18
                             horizontalAlignment: Text.AlignRight; color: app.pal.primaryText }
@@ -126,6 +127,7 @@ Page {
                     }
                     Label {
                         text: rec ? "♛ " + (rec.winner || qsTr("(no winner)")) : ""
+                        textFormat: Text.PlainText
                         color: app.pal.primaryText
                         font.pixelSize: Theme.fontSizeSmall
                         truncationMode: TruncationMode.Fade

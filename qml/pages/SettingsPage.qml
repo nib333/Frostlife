@@ -69,6 +69,23 @@ Page {
                 automaticCheck: false
                 onClicked: app.trueBlack = !(app.trueBlack === true)
             }
+
+            SectionHeader { text: qsTr("About") }
+
+            Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                font.pixelSize: Theme.fontSizeSmall
+                color: app.pal.primaryText
+                text: qsTr("Frostbite Life Counter")
+            }
+            Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                font.pixelSize: Theme.fontSizeExtraSmall
+                color: app.pal.mutedText
+                text: qsTr("No network access — all data stays on your device.")
+            }
         }
         VerticalScrollDecorator {}
     }

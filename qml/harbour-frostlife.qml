@@ -84,7 +84,14 @@ ApplicationWindow {
     }
     property int statsRev: 0    // bump on store writes; StatsPage binds through it
     function statsRecords() {
-        try { return JSON.parse(statsStore.value || "[]") } catch (e) { return [] }
+        var arr
+        try { arr = JSON.parse(statsStore.value || "[]") } catch (e) { return [] }
+        if (!Array.isArray(arr)) return []
+        // drop malformed records so a corrupt entry can't break aggregation
+        return arr.filter(function (r) {
+            return r && Array.isArray(r.players) && typeof r.winner === "string"
+                && typeof r.endedAt === "number"
+        })
     }
     function endGame(winnerIndex) {
         var arr = statsRecords()

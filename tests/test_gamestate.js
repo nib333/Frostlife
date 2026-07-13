@@ -452,6 +452,53 @@ ok(rec.winner === "Eva" && rec.dead[0] === "Player 3", "works after deserialize"
 ok(G.summarizeGame(g, 99).winner === "", "out-of-range winner -> empty name");
 ok(JSON.parse(JSON.stringify(rec)).winner === "Eva", "record is JSON-safe");
 
+/* ---- robustness: corrupt saves and hostile display text ---- */
+section("robustness");
+function rejects(json, name) {
+    let t = false;
+    try { G.deserialize(json); } catch (e) { t = true; }
+    ok(t, name);
+}
+rejects('{"schema":1,"players"', "truncated JSON rejected");
+rejects('{"schema":1,"players":[{}]}', "empty player object rejected");
+rejects('{"schema":1,"players":"two"}', "players as string rejected");
+g = G.createGame(2, 40);
+let raw = JSON.parse(G.serialize(g));
+raw.players[0].life = "forty";
+rejects(JSON.stringify(raw), "non-numeric life rejected");
+raw = JSON.parse(G.serialize(g));
+raw.players[1].cmdDamage = [[0, 0]]; // wrong width
+rejects(JSON.stringify(raw), "wrong-width cmdDamage rejected");
+raw = JSON.parse(G.serialize(g));
+raw.players[0].cmdDamage[1] = [0, "x"];
+rejects(JSON.stringify(raw), "non-numeric cmdDamage cell rejected");
+
+raw = JSON.parse(G.serialize(g));
+raw.settings = { cmdDamageAffectsLife: "yes", autoDeath: 1 };
+raw.history = "nope"; delete raw.log;
+let gr = G.deserialize(JSON.stringify(raw));
+ok(gr.settings.cmdDamageAffectsLife === true && gr.settings.autoDeath === true,
+   "unexpected settings types normalize to defaults");
+ok(Array.isArray(gr.history) && Array.isArray(gr.log) && Array.isArray(gr.future),
+   "missing/typed-wrong stacks normalize to empty arrays");
+raw = JSON.parse(G.serialize(g));
+raw.settings.autoDeath = false;
+ok(G.deserialize(JSON.stringify(raw)).settings.autoDeath === false,
+   "literal false survives normalization");
+
+// hostile display text stays display text: quotes, emoji, RTL, HTML-ish
+g = G.createGame(2, 40);
+const hostile = '<b>"Nik\\l"</b> 🎉 שלום';
+G.applyAction(g, { type: "rename", player: 0, name: hostile });
+G.applyAction(g, { type: "addCustomCounter", player: 0, name: '"q\\uote' });
+G.applyAction(g, { type: "nameCommander", player: 1, slot: 0, name: "🐢🐢🐢" });
+let gh = G.deserialize(G.serialize(g));
+ok(gh.players[0].name === hostile.slice(0, 24), "quotes/emoji/RTL/HTML survive round-trip verbatim");
+ok(gh.players[0].customCounters[0].name === '"q\\uote', "custom counter name round-trips");
+ok(G.commanderLabel(gh.players[1], 0) === "🐢🐢🐢", "emoji commander label intact");
+G.undo(g);
+ok(g.log[g.log.length - 1].text.indexOf("undo:") === 0, "log text with hostile name still labels undo");
+
 console.log("\n=========================");
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);

@@ -24,6 +24,7 @@ Rectangle {
         spacing: Theme.paddingSmall / 2
         Label {
             text: chip.glyph
+            textFormat: Text.PlainText  // may carry user status names
             font.pixelSize: Theme.fontSizeExtraSmall
             color: chip.accent
             anchors.verticalCenter: parent.verticalCenter

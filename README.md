@@ -3,7 +3,8 @@
 Dark-first, EDH-focused Magic: The Gathering life counter for Sailfish OS.
 Target device: 2026 Jolla Phone (aarch64, Sailfish OS 5.2, AMOLED).
 
-Pure-QML Silica app. No backend, no network. All state local, autosaved.
+Pure-QML Silica app. No backend, no network access — all data stays on your
+device. All state local, autosaved.
 
 ## Features (implemented, device-verified)
 - 2–6 players, explicit row layout; every row except the bottom one flips 180°

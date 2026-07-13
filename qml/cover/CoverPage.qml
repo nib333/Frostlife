@@ -28,6 +28,7 @@ CoverBackground {
 
                 Label { // name — stays readable at cover scale, fades if long
                     text: pl ? pl.name : ""
+                    textFormat: Text.PlainText
                     color: crowned ? app.pal.frostBlue : app.pal.mutedText
                     font.pixelSize: Theme.fontSizeExtraSmall
                     width: cover.n > 3 ? cover.width * 0.42 : cover.width * 0.8

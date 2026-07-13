@@ -37,6 +37,7 @@ Dialog {
                 highlighted: down || index === dialog.winnerIndex
                 onClicked: dialog.winnerIndex = index
                 Label {
+                    textFormat: Text.PlainText
                     text: (pl ? pl.name : "")
                           + (pl && pl.dead ? "  ❄☠" : "")
                           + (index === dialog.winnerIndex ? "  ♛" : "")

@@ -48,6 +48,7 @@ Rectangle {
                     font.pixelSize: Theme.fontSizeMedium }
         }
         Label { text: pill.label
+                textFormat: Text.PlainText  // user names are display text, never markup
                 color: pill.accent
                 font.pixelSize: Theme.fontSizeMedium
                 width: pill.maxWidth > 0 ? Math.min(implicitWidth, pill._labelMax)
