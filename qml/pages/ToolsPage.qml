@@ -20,7 +20,11 @@ Page {
     property string coinResult: ""
     property string firstText: ""
     readonly property bool revealing: revealTimer.running
-    readonly property real shapeSize: Theme.itemSizeLarge * 1.3
+    // d20 is the table workhorse — largest; d6/coin step down. Result
+    // numbers scale with their shape.
+    readonly property real d20Size: Theme.itemSizeLarge * 2.0
+    readonly property real d6Size: Theme.itemSizeLarge * 1.75
+    readonly property real coinSize: Theme.itemSizeLarge * 1.75
 
     Timer { // decelerating name shuffle (~2 s); the tick it settles on is the pick
         id: revealTimer
@@ -72,17 +76,29 @@ Page {
                     width: parent.width
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.paddingSmall
-                    Label {
-                        width: parent.width
-                        horizontalAlignment: Text.AlignHCenter
-                        text: page.firstText || "–"
-                        textFormat: Text.PlainText  // shows player names
-                        color: page.firstText === "" ? app.pal.mutedText
-                             : page.revealing ? app.pal.mutedText : app.pal.frostBlue
-                        font.pixelSize: Theme.fontSizeHuge * 1.6
-                        font.bold: true
-                        fontSizeMode: Text.HorizontalFit   // long names shrink to fit
-                        minimumPixelSize: Theme.fontSizeLarge
+                    Rectangle { // wide pill: an action container, deliberately
+                                // NOT a die shape — same hairline/surface
+                                // styling so it reads as tappable
+                        width: parent.width * 0.9
+                        height: Theme.itemSizeLarge * 1.2
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: height / 2
+                        color: app.pal.surface
+                        border.color: app.pal.hairline
+                        border.width: 2
+                        Label {
+                            anchors.centerIn: parent
+                            width: parent.width - parent.height // clear the rounded ends
+                            horizontalAlignment: Text.AlignHCenter
+                            text: page.firstText || "–"
+                            textFormat: Text.PlainText  // shows player names
+                            color: page.firstText === "" ? app.pal.mutedText
+                                 : page.revealing ? app.pal.mutedText : app.pal.frostBlue
+                            font.pixelSize: Theme.fontSizeHuge * 1.4
+                            font.bold: true
+                            fontSizeMode: Text.HorizontalFit   // long names shrink to fit
+                            minimumPixelSize: Theme.fontSizeMedium
+                        }
                     }
                     Label {
                         width: parent.width
@@ -110,7 +126,7 @@ Page {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.paddingSmall
                     Canvas { // flat-top hexagon, hairline stroke on surface fill
-                        width: page.shapeSize; height: page.shapeSize
+                        width: page.d20Size; height: page.d20Size
                         anchors.horizontalCenter: parent.horizontalCenter
                         onPaint: {
                             var ctx = getContext("2d")
@@ -135,7 +151,7 @@ Page {
                             anchors.centerIn: parent
                             text: page.d20Result || "–"
                             color: page.d20Result ? app.pal.frostBlue : app.pal.mutedText
-                            font.pixelSize: Theme.fontSizeHuge * 1.2
+                            font.pixelSize: page.d20Size * 0.42
                             font.bold: true
                         }
                     }
@@ -165,7 +181,7 @@ Page {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.paddingSmall
                     Rectangle {
-                        width: page.shapeSize; height: page.shapeSize
+                        width: page.d6Size; height: page.d6Size
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: Theme.paddingMedium
                         color: app.pal.surface
@@ -175,7 +191,7 @@ Page {
                             anchors.centerIn: parent
                             text: page.d6Result || "–"
                             color: page.d6Result ? app.pal.frostBlue : app.pal.mutedText
-                            font.pixelSize: Theme.fontSizeHuge * 1.2
+                            font.pixelSize: page.d6Size * 0.42
                             font.bold: true
                         }
                     }
@@ -206,7 +222,7 @@ Page {
                     anchors.verticalCenter: parent.verticalCenter
                     spacing: Theme.paddingSmall
                     Rectangle {
-                        width: page.shapeSize; height: page.shapeSize
+                        width: page.coinSize; height: page.coinSize
                         anchors.horizontalCenter: parent.horizontalCenter
                         radius: width / 2
                         color: app.pal.surface
@@ -214,11 +230,11 @@ Page {
                         border.width: 2
                         Label {
                             anchors.centerIn: parent
-                            width: parent.width * 0.8
+                            width: parent.width * 0.75
                             horizontalAlignment: Text.AlignHCenter
                             text: page.coinResult || "–"
                             color: page.coinResult ? app.pal.frostBlue : app.pal.mutedText
-                            font.pixelSize: Theme.fontSizeLarge
+                            font.pixelSize: page.coinSize * 0.3
                             font.bold: true
                             fontSizeMode: Text.HorizontalFit
                             minimumPixelSize: Theme.fontSizeSmall
