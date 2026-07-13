@@ -111,11 +111,6 @@ function commanderLabel(sourcePlayer, slot) {
     return sourcePlayer.name + " \u00b7 " + (slot === 1 ? "B" : "A");
 }
 
-function totalCmdDamage(player, sourceIndex) {
-    var row = player.cmdDamage[sourceIndex];
-    return row ? (row[0] + row[1]) : 0;
-}
-
 function maxCmdDamage(player) {
     var m = 0;
     for (var s = 0; s < player.cmdDamage.length; s++) {
@@ -535,7 +530,6 @@ if (typeof module !== "undefined" && module.exports) {
         summarizeGame: summarizeGame,
         nameKey: nameKey,
         serialize: serialize, deserialize: deserialize,
-        totalCmdDamage: totalCmdDamage,
         commanderLabel: commanderLabel,
         maxCmdDamage: maxCmdDamage
     };

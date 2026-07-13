@@ -8,7 +8,8 @@ import "../components"
  *   2p: stacked, top flipped          3p: pair flipped + full-width bottom
  *   4p: 2×2, top row flipped          5p: two pairs flipped + full-width bottom
  *   6p: 3×2, top two rows flipped
- * MVP keeps 180° flips only (no 90° side seats) — revisit after real-table testing.
+ * The opt-in around-the-table mode (Settings) replaces this with ±90°
+ * side seats for 4+ players — see aroundLayout below.
  */
 Page {
     id: page

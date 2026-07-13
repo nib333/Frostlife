@@ -3,7 +3,6 @@ import Sailfish.Silica 1.0
 import Nemo.Configuration 1.0
 import Nemo.KeepAlive 1.2
 import "js/gamestate.js" as Game
-import "components"
 import "pages"
 
 /* Root window. Owns the single game object and exposes a tiny API the
@@ -27,10 +26,10 @@ ApplicationWindow {
      * window as app.pal.* — the qmldir singleton failed to resolve at
      * runtime on-device, leaving default-white Rectangles everywhere. */
     readonly property QtObject pal: QtObject {
-        // deep base / gutters; true black = every canvas pixel physically
-        // off. Written imperatively by _applyCanvas() — a binding in this
-        // inline object did not notify long-lived pages on device.
-        property color canvas:               "#0e161d"
+        // NOTE: the canvas color is NOT here — it switches at runtime
+        // (true-black toggle) and inline-QtObject sub-properties don't
+        // deliver changes to long-lived pages on device. It lives as
+        // the flat root property `app.canvasColor` below.
         readonly property color surface:     "#1c2832"  // player panels = Frostbite ink
         readonly property color surfaceAlt:  "#26333e"  // raised fills / pressed states
         readonly property color primaryText: "#f4f7f9"  // = Frostbite onInk
@@ -63,7 +62,6 @@ ApplicationWindow {
         _sync()
     }
 
-    function maxCmdDamageFor(p) { return Game.maxCmdDamage(game.players[p]) }
     function cmdLabel(sourceIndex, slot) { return Game.commanderLabel(game.players[sourceIndex], slot) }
 
     // Rules settings live in game.settings (serialized with the save).
@@ -122,11 +120,10 @@ ApplicationWindow {
     // toggle). It lives as a ROOT property — the same proven-reactive
     // path as app.rev — because bindings through the inline pal QtObject
     // did not refresh long-lived pages on device. Pages bind
-    // app.canvasColor; pal.canvas is kept in sync.
+    // app.canvasColor.
     property color canvasColor: "#0e161d"
     function _applyCanvas() {
         canvasColor = (cfgTrueBlack.value === true) ? "#000000" : "#0e161d"
-        pal.canvas = canvasColor
     }
     ConfigurationValue {
         id: cfgSeating

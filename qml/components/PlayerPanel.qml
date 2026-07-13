@@ -255,7 +255,6 @@ Rectangle {
                 visible: panel.compact && panel.dmgAgg.n > 0
                 glyph: "⚔ " + panel.dmgAgg.max
                        + (panel.dmgAgg.n > 1 ? " +" + (panel.dmgAgg.n - 1) : "")
-                value: 0
                 accent: app.pal.error
                 MouseArea {
                     anchors.fill: parent
@@ -314,7 +313,6 @@ Rectangle {
                 CounterChip { // "+N" overflow; tap opens the detail page
                     visible: panel.counterPills.length > panel.countersShown
                     glyph: "+" + (panel.counterPills.length - panel.countersShown)
-                    value: 0
                     accent: app.pal.mutedText
                     MouseArea {
                         anchors.fill: parent
@@ -348,15 +346,12 @@ Rectangle {
                 model: panel.chipsShown
                 CounterChip {
                     glyph: index < panel.statusChips.length ? panel.statusChips[index] : ""
-                    value: 0
-                    alwaysVisible: true
                     accent: app.pal.frostBlue
                 }
             }
             CounterChip { // "+N" overflow; tap opens the detail page
                 visible: panel.statusChips.length > panel.chipsShown
                 glyph: "+" + (panel.statusChips.length - panel.chipsShown)
-                value: 0
                 accent: app.pal.frostBlue
                 MouseArea {
                     anchors.fill: parent

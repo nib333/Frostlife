@@ -62,7 +62,9 @@ harbour-frostlife/
 
 Palette (dark-first mapping of the real Frostbite tokens; `canvas`/`surfaceAlt`/`hairline` are derived, muted + states are lightened for dark, the rest are exact Frostbite values). It lives as a QtObject on the app root — reference it as `app.pal.*` (NOT a qmldir singleton; see Device lessons):
 ```qml
-readonly property color canvas:      "#0e161d"  // deep base / gutters (use "#000000" for max AMOLED)
+// canvas "#0e161d" is NOT a pal token: it switches at runtime (true-black
+// toggle → "#000000") and lives as the flat root property `app.canvasColor`
+// (see Device lessons on inline-QtObject sub-properties)
 readonly property color surface:     "#1c2832"  // player panels / cards  = Frostbite `ink`
 readonly property color surfaceAlt:  "#26333e"  // raised fills / dividers
 readonly property color primaryText: "#f4f7f9"  // = Frostbite `onInk`

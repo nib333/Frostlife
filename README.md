@@ -10,7 +10,10 @@ device. All state local, autosaved.
 ## Features (implemented, device-verified)
 - 2–6 players, explicit row layout; every row except the bottom one flips 180°
   so players across the table read right-side-up
-- Tap ±1 life, press-and-hold ±5 (repeating)
+- Around-the-table seating mode (opt-in, 4+ players): ±90° side seats along
+  the phone's long edges, wide panel arrangement
+- Tap ±1 life, press-and-hold ±5 (repeating), with a transient accumulated
+  delta indicator (green gains / red losses)
 - Commander damage matrix per source player, partner slots, life auto-deduction, 21-lethal
 - Commander naming: labels use the commander's name, falling back to
   player name / "· A"/"· B" for unnamed partners (`cmdLabel`)
@@ -25,12 +28,19 @@ device. All state local, autosaved.
 - Status chips anchored to the panel bottom, with camera-cutout clearance
   on top-row (flipped) panels
 - Undo / redo (bounded history) with descriptive log entries
-  ("undo: Player 3 takes 1 cmd dmg from Player 1 → 4")
+  ("undo: Player 3 takes 1 cmd dmg from Player 1 → 4"); reset is undoable —
+  one Undo restores the whole pre-reset game
 - History page: reverse-chronological action log + undo/redo buttons
   (pulley menu → History)
 - Autosave to dconf (debounced + flush on background) — survives crash/reboot
-- Screen keep-awake while app is active (`Nemo.KeepAlive`)
-- Cover page with live life totals + reset action
+- New game carries player identities seat-for-seat; optional randomized seating
+- Per-game stats: End game records the winner; standings by name
+  (case-insensitive), recent-games list, clear behind a remorse timer
+- Settings: rules toggles, keep-awake gate, true-black AMOLED canvas,
+  seating layout
+- Tools: roll-for-first-player, d20, d6, coin flip
+- Screen keep-awake while app is active (`Nemo.KeepAlive`, user-gated)
+- Cover page with live life totals + undo and reset cover actions
 - Dead-player detection (life ≤ 0, poison ≥ 10, 21 cmd dmg) with panel overlay
 
 ## Prerequisites
@@ -53,7 +63,7 @@ Or open `harbour-frostlife.pro` in the Sailfish IDE and hit Deploy.
 ## Logic tests (no SDK needed)
 The whole game engine is plain JS with zero QML dependencies:
 ```sh
-node tests/test_gamestate.js     # 94 tests: cmd damage, undo/redo log, persistence, rules, custom counters/statuses
+node tests/test_gamestate.js     # 175 tests: cmd damage, undo/redo, persistence, rules, customs, shuffle, stats, robustness, stress
 ```
 Any change to `qml/js/gamestate.js` must keep this green.
 
@@ -70,8 +80,9 @@ Any change to `qml/js/gamestate.js` must keep this green.
 - `qml/components/CounterPill.qml`, `CounterChip.qml` — interactive −/+ pill
   and display-only chip; `StepperRow.qml` — label/−/value/+ row on the
   detail page.
-- `qml/pages/` — main layout (Column of Rows), player detail (counters +
-  cmd damage matrix), history (log + undo/redo), new-game dialog.
+- `qml/pages/` — main layout (rows or around-the-table), player detail
+  (counters + cmd damage matrix), history, settings, tools, stats,
+  new-game / end-game dialogs.
 - `qml/cover/CoverPage.qml` — backgrounded view.
 
 ## Known limitations / next steps
