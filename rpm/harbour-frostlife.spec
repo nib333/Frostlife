@@ -1,6 +1,6 @@
 Name:       harbour-frostlife
 Summary:    Frostlife — life counter for Magic: The Gathering (EDH)
-Version:    0.1.0
+Version:    1.0.0
 Release:    1
 License:    MIT
 URL:        https://github.com/nib333/Frostlife
