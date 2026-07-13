@@ -121,8 +121,14 @@ ApplicationWindow {
         canvasColor = (cfgTrueBlack.value === true) ? "#000000" : "#0e161d"
         pal.canvas = canvasColor
     }
+    ConfigurationValue {
+        id: cfgSeating
+        key: "/apps/harbour-frostlife/seatingLayout"
+        defaultValue: "rows"    // "rows" | "around"
+    }
     property alias keepAwake: cfgKeepAwake.value
     property alias trueBlack: cfgTrueBlack.value
+    property alias seatingLayout: cfgSeating.value
 
     // ---- persistence (JSON blob in dconf; small state, Harbour-safe) ----
     ConfigurationValue {

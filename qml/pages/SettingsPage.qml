@@ -39,6 +39,20 @@ Page {
                 onClicked: app.setSetting("autoDeath", !app.game.settings.autoDeath)
             }
 
+            SectionHeader { text: qsTr("Table") }
+
+            ComboBox {
+                label: qsTr("Seating layout")
+                description: qsTr("Around the table seats players along the phone's sides (4+ players)")
+                currentIndex: app.seatingLayout === "around" ? 1 : 0
+                menu: ContextMenu {
+                    MenuItem { text: qsTr("Rows") }
+                    MenuItem { text: qsTr("Around the table") }
+                }
+                onCurrentIndexChanged:
+                    app.seatingLayout = currentIndex === 1 ? "around" : "rows"
+            }
+
             SectionHeader { text: qsTr("Display") }
 
             TextSwitch {

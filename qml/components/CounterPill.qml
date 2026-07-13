@@ -13,6 +13,14 @@ Rectangle {
     property color accent: app.pal.mutedText
     property int value: 0
     property var action
+    // >0: structural width cap — the LABEL shrinks (fade) to honor it;
+    // the value and both tap zones never shrink. 0 = unconstrained.
+    property real maxWidth: 0
+
+    // room left for the label once pill padding, both tap zones
+    // (prow.height * 1.1 each) and the value are reserved
+    readonly property real _labelMax: Math.max(0, maxWidth - Theme.paddingSmall
+                                               - prow.height * 2.2 - Theme.fontSizeMedium)
 
     visible: value > 0   // appears once nonzero, hides at 0
     radius: height / 2
@@ -42,6 +50,9 @@ Rectangle {
         Label { text: pill.label
                 color: pill.accent
                 font.pixelSize: Theme.fontSizeMedium
+                width: pill.maxWidth > 0 ? Math.min(implicitWidth, pill._labelMax)
+                                         : implicitWidth
+                truncationMode: TruncationMode.Fade
                 anchors.verticalCenter: parent.verticalCenter }
         Label { text: pill.value
                 color: app.pal.primaryText

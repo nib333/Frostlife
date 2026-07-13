@@ -15,8 +15,18 @@ Rectangle {
     id: panel
 
     property int playerIndex: 0
-    property bool flipped: false          // rotate 180° for across-the-table players
-    property bool topRow: false           // at the physical screen top: chips need camera-cutout clearance
+    property bool flipped: false          // 180° for across-the-table players (rows mode)
+    property real seatRotation: flipped ? 180 : 0   // side seats override with ±90
+    // Which LOCAL panel edge sits at the physical screen top, where the
+    // front-camera cutout eats pixels: "" none, "bottom" = flipped panel
+    // in the top row (chip row needs clearance), "left"/"right" = upper
+    // side seats in around-the-table mode (content insets from that edge).
+    property string cutoutEdge: ""
+    // Side seats are short-and-WIDE for their player: the middle content
+    // becomes damage | life | counters side by side, each pill column
+    // budgeting the full content-area height. Rows-mode panels never set
+    // this — the stacked arrangement is unchanged.
+    property bool wideLayout: false
     // read-through helpers; `app.rev` dependency forces re-evaluation
     readonly property var pl: app.rev >= 0 ? app.game.players[playerIndex] : null
 
@@ -65,12 +75,17 @@ Rectangle {
     // contentArea clips whatever still won't fit.
     readonly property real _pillH: Theme.itemSizeExtraSmall * 0.72 + Theme.paddingSmall / 2
     readonly property real _lifeH: Math.min(height * 0.42, Theme.fontSizeHuge * 2.2) * 1.2
-    readonly property bool compact:
-        (dmgAgg.n + counterPills.length) * _pillH + _lifeH > contentArea.height
+    // stacked: everything shares the vertical budget; wide: the damage
+    // column has the whole content-area height to itself
+    readonly property bool compact: wideLayout
+        ? dmgAgg.n * _pillH > contentArea.height
+        : (dmgAgg.n + counterPills.length) * _pillH + _lifeH > contentArea.height
 
     // ---- space priority: life, then damage pill(s), then counters ----
-    // counters only get what remains after life + damage are reserved
+    // stacked: counters get what remains after life + damage are reserved;
+    // wide: their own column, so the full content-area height
     readonly property int counterCapacity: {
+        if (wideLayout) return Math.max(0, Math.floor(contentArea.height / _pillH))
         var dmgH = compact ? (dmgAgg.n > 0 ? _pillH : 0) : dmgAgg.n * _pillH
         var rows = Math.max(0, Math.floor((contentArea.height - _lifeH - dmgH) / _pillH))
         return compact ? rows * 2 : rows
@@ -112,7 +127,7 @@ Rectangle {
 
     signal detailRequested(int playerIndex)
 
-    rotation: flipped ? 180 : 0
+    rotation: seatRotation
     color: app.pal.surface
     border.color: pl && pl.monarch ? app.pal.frostBlue : app.pal.hairline
     border.width: pl && pl.monarch ? 2 : 1
@@ -174,14 +189,20 @@ Rectangle {
             bottom: chipRow.top
             left: parent.left
             right: parent.right
+            leftMargin: panel.cutoutEdge === "left" ? Theme.itemSizeExtraSmall : 0
+            rightMargin: panel.cutoutEdge === "right" ? Theme.itemSizeExtraSmall : 0
         }
 
-        Column {
+        Grid { // stacked: one column, damage → life → counters;
+               // wide (side seats): damage | life | counters side by side
             anchors.centerIn: parent
-            spacing: 0
+            columns: panel.wideLayout ? 3 : 1
+            rowSpacing: 0
+            columnSpacing: Theme.paddingLarge
+            horizontalItemAlignment: Grid.AlignHCenter
+            verticalItemAlignment: Grid.AlignVCenter
 
-            Column { // commander damage received — the urgent number, above life
-                anchors.horizontalCenter: parent.horizontalCenter
+            Column { // commander damage received — the urgent pills
                 spacing: Theme.paddingSmall / 2
                 visible: !panel.compact
                 Repeater {
@@ -194,6 +215,10 @@ Rectangle {
                         value: app.rev >= 0 && src !== panel.playerIndex
                                ? panel.pl.cmdDamage[src][slot] : 0
                         accent: app.pal.error
+                        // cap so the life −/+ corridors stay clear: wide mode
+                        // fits two side columns; tall rows-mode pills keep
+                        // tappable margins at both edges
+                        maxWidth: panel.width * (panel.wideLayout ? 0.3 : 0.72)
                         action: ({ type: "cmdDamage", player: panel.playerIndex,
                                    source: src, slot: slot })
                     }
@@ -202,7 +227,6 @@ Rectangle {
 
             CounterChip { // compact: one aggregate pill; tap opens the full matrix
                 visible: panel.compact && panel.dmgAgg.n > 0
-                anchors.horizontalCenter: parent.horizontalCenter
                 glyph: "⚔ " + panel.dmgAgg.max
                        + (panel.dmgAgg.n > 1 ? " +" + (panel.dmgAgg.n - 1) : "")
                 value: 0
@@ -213,19 +237,20 @@ Rectangle {
                 }
             }
 
-            Label { // life total — the hero number
+            Label { // life total — the hero number. Wide panels scale from
+                    // width so the font doesn't shrink needlessly.
                 text: pl ? pl.life : ""
                 color: pl && pl.dead ? app.pal.mutedText : app.pal.primaryText
-                font.pixelSize: Math.min(panel.height * 0.42, Theme.fontSizeHuge * 2.2)
+                font.pixelSize: Math.min((panel.wideLayout ? panel.width : panel.height) * 0.42,
+                                         Theme.fontSizeHuge * 2.2)
                 font.bold: true
-                anchors.horizontalCenter: parent.horizontalCenter
             }
 
-            Grid { // counter pills: one centered column; two when compact.
+            Grid { // counter pills: one centered column; two when the
+                   // stacked arrangement is compact (wide keeps one).
                    // Only countersShown render — counters get the leftover
                    // space, never the damage pill's or life number's.
-                anchors.horizontalCenter: parent.horizontalCenter
-                columns: panel.compact ? 2 : 1
+                columns: panel.wideLayout ? 1 : (panel.compact ? 2 : 1)
                 columnSpacing: Theme.paddingSmall
                 rowSpacing: Theme.paddingSmall / 2
                 horizontalItemAlignment: Grid.AlignHCenter
@@ -237,6 +262,7 @@ Rectangle {
                         label: cp ? cp.label : ""
                         accent: cp ? cp.accent : app.pal.mutedText
                         value: cp ? cp.value : 0
+                        maxWidth: panel.width * (panel.wideLayout ? 0.3 : 0.72)
                         action: cp ? cp.action : ({})
                     }
                 }
@@ -263,9 +289,10 @@ Rectangle {
         clip: true                               // never past the panel edge
         anchors {
             bottom: parent.bottom
-            // top-row panels are flipped, putting this edge at the physical
-            // screen top — clear the front-camera cutout there
-            bottomMargin: panel.topRow ? Theme.itemSizeExtraSmall : Theme.paddingSmall
+            // a flipped top-row panel has this edge at the physical screen
+            // top — clear the front-camera cutout there
+            bottomMargin: panel.cutoutEdge === "bottom" ? Theme.itemSizeExtraSmall
+                                                        : Theme.paddingSmall
             left: parent.left
             right: parent.right
         }
@@ -298,7 +325,13 @@ Rectangle {
     MouseArea {
         id: nameArea
         height: nameLabel.height + Theme.paddingMedium * 2
-        anchors { top: parent.top; left: parent.left; right: parent.right }
+        anchors {
+            top: parent.top
+            left: parent.left
+            right: parent.right
+            leftMargin: panel.cutoutEdge === "left" ? Theme.itemSizeExtraSmall : 0
+            rightMargin: panel.cutoutEdge === "right" ? Theme.itemSizeExtraSmall : 0
+        }
         onClicked: panel.detailRequested(playerIndex)
         Label {
             id: nameLabel
