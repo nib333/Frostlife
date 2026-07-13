@@ -1,6 +1,6 @@
 # Frostlife
 
-<img src="https://img.shields.io/liberapay/receives/nib333.svg?logo=liberapay">
+<a href="https://liberapay.com/nib333/donate"><img src="https://img.shields.io/liberapay/receives/nib333.svg?logo=liberapay"></a>
 
 Frostlife from Frostbite — a dark-first, EDH-focused Magic: The Gathering
 life counter for Sailfish OS.
