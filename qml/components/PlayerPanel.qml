@@ -78,14 +78,16 @@ Rectangle {
             spacing: Theme.paddingSmall / 2
             Repeater {
                 model: app.rev >= 0 ? app.game.players.length * 2 : 0 // source × partner slot
-                delegate: CounterChip {
+                delegate: CounterPill {
                     readonly property int src: Math.floor(index / 2)
                     readonly property int slot: index % 2
-                    glyph: app.rev >= 0 && src !== panel.playerIndex
+                    label: app.rev >= 0 && src !== panel.playerIndex
                            ? "⚔ " + app.cmdLabel(src, slot) : ""
                     value: app.rev >= 0 && src !== panel.playerIndex
                            ? panel.pl.cmdDamage[src][slot] : 0
                     accent: app.pal.error
+                    action: ({ type: "cmdDamage", player: panel.playerIndex,
+                               source: src, slot: slot })
                 }
             }
         }
@@ -130,22 +132,30 @@ Rectangle {
                 }
             }
         }
+    }
 
-        Row { // status chips (only toggled counters show in the stack)
-            anchors.horizontalCenter: parent.horizontalCenter
-            spacing: Theme.paddingSmall
-            CounterChip { glyph: "\u265B"; value: 0; alwaysVisible: pl ? pl.monarch : false; accent: app.pal.frostBlue } // ♛ monarch
-            CounterChip { glyph: "\u2694"; value: 0; alwaysVisible: pl ? pl.initiative : false; accent: app.pal.frostBlue } // ⚔ initiative
-            Repeater { // custom statuses (shown when on)
-                model: app.rev >= 0 ? panel.pl.customStatuses.length : 0
-                CounterChip {
-                    glyph: app.rev >= 0 && index < panel.pl.customStatuses.length
-                           ? panel.pl.customStatuses[index].name : ""
-                    value: 0
-                    alwaysVisible: app.rev >= 0 && index < panel.pl.customStatuses.length
-                                   ? panel.pl.customStatuses[index].on : false
-                    accent: app.pal.frostBlue
-                }
+    // ---- status chips: pinned to the panel's bottom edge; the 180°
+    // rotation carries them, so this is the visual bottom for the player
+    // facing the panel ----
+    Row {
+        anchors {
+            bottom: parent.bottom
+            bottomMargin: Theme.paddingSmall
+            horizontalCenter: parent.horizontalCenter
+        }
+        spacing: Theme.paddingSmall
+        CounterChip { glyph: "\u265B"; value: 0; alwaysVisible: pl ? pl.monarch : false; accent: app.pal.frostBlue } // ♛ monarch
+        CounterChip { glyph: "\u2694"; value: 0; alwaysVisible: pl ? pl.initiative : false; accent: app.pal.frostBlue } // ⚔ initiative
+        CounterChip { glyph: "\u265C"; value: 0; alwaysVisible: pl ? pl.cityBlessing : false; accent: app.pal.frostBlue } // ♜ city's blessing
+        Repeater { // custom statuses (shown when on)
+            model: app.rev >= 0 ? panel.pl.customStatuses.length : 0
+            CounterChip {
+                glyph: app.rev >= 0 && index < panel.pl.customStatuses.length
+                       ? panel.pl.customStatuses[index].name : ""
+                value: 0
+                alwaysVisible: app.rev >= 0 && index < panel.pl.customStatuses.length
+                               ? panel.pl.customStatuses[index].on : false
+                accent: app.pal.frostBlue
             }
         }
     }
