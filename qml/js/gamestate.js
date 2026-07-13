@@ -319,6 +319,19 @@ function applyAction(game, action) {
     return game;
 }
 
+/* Toggling autoDeath is retroactive: ON recomputes death for every player
+ * immediately; OFF clears all dead flags — with detection off, nothing
+ * else can ever clear a stale flag (refreshDeath early-returns), so
+ * "off" means nobody is auto-marked. Not an undoable action. */
+function setAutoDeath(game, on) {
+    game.settings.autoDeath = !!on;
+    for (var p = 0; p < game.players.length; p++) {
+        if (on) refreshDeath(game, p);
+        else game.players[p].dead = false;
+    }
+    return game;
+}
+
 /* ---------- undo / redo ---------- */
 
 function canUndo(game) { return game.history.length > 0; }
@@ -394,6 +407,7 @@ if (typeof module !== "undefined" && module.exports) {
         MAX_UNDO: MAX_UNDO,
         createGame: createGame,
         applyAction: applyAction,
+        setAutoDeath: setAutoDeath,
         undo: undo, redo: redo,
         canUndo: canUndo, canRedo: canRedo,
         resetGame: resetGame,

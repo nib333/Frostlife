@@ -66,7 +66,8 @@ ApplicationWindow {
     // Changing one is not an undoable action — it goes straight to the
     // game object, then bumps rev + autosaves.
     function setSetting(key, value) {
-        game.settings[key] = value
+        if (key === "autoDeath") Game.setAutoDeath(game, value) // retroactive (see engine)
+        else game.settings[key] = value
         _sync()
     }
 

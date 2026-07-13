@@ -338,6 +338,35 @@ G.undo(g);
 ok(g.log[g.log.length - 1].text === "undo", "old-format snapshot logs plain undo");
 ok(g.players[0].life === 40, "old-format snapshot still restores state");
 
+/* ---- autoDeath toggle semantics ----
+ * Retroactive by design: ON recomputes every player immediately; OFF
+ * clears all dead flags, because with detection off nothing else can
+ * ever clear a stale flag (refreshDeath early-returns) and there is no
+ * manual revive control. */
+section("autoDeath toggle semantics");
+g = G.createGame(2, 40);
+G.applyAction(g, { type: "life", player: 0, delta: -45 });
+ok(g.players[0].dead === true, "sanity: dead at life < 0");
+G.setAutoDeath(g, false);
+ok(g.settings.autoDeath === false, "toggle OFF stored");
+ok(g.players[0].dead === false, "OFF clears dead flags (manual mode marks nobody)");
+G.applyAction(g, { type: "life", player: 0, delta: -1 });
+ok(g.players[0].dead === false, "no re-marking while off");
+G.setAutoDeath(g, true);
+ok(g.settings.autoDeath === true, "toggle ON stored");
+ok(g.players[0].dead === true, "ON recomputes immediately (life still < 0)");
+
+g = G.createGame(3, 40);
+g.settings.autoDeath = false;
+G.applyAction(g, { type: "counter", player: 1, counter: "poison", delta: 10 });
+G.applyAction(g, { type: "cmdDamage", player: 2, source: 0, slot: 0, delta: 21 });
+ok(g.players[1].dead === false && g.players[2].dead === false,
+   "poison 10 / 21 cmd dmg not marked while off");
+G.setAutoDeath(g, true);
+ok(g.players[1].dead === true, "ON recompute catches poison deaths");
+ok(g.players[2].dead === true, "ON recompute catches 21-cmd-dmg deaths");
+ok(g.players[0].dead === false, "ON recompute leaves healthy players alive");
+
 console.log("\n=========================");
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);
