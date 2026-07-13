@@ -156,9 +156,11 @@ function pushLog(game, text) {
 
 function applyAction(game, action) {
     // snapshot BEFORE mutating, for undo
-    game.history.push(snapshotOf(game));
+    var snap = snapshotOf(game);
+    game.history.push(snap);
     if (game.history.length > MAX_UNDO) game.history.shift();
     game.future = [];   // any new action invalidates redo
+    var lastLogBefore = game.log[game.log.length - 1];
 
     var p, pl, name;
 
@@ -307,6 +309,13 @@ function applyAction(game, action) {
         game.history.pop();
         throw new Error("unknown action type: " + action.type);
     }
+    // Label the snapshot with this action's log line so undo/redo can say
+    // what they reverted. Compared by identity, not length: a full log
+    // shifts on push, leaving the length unchanged. Actions that don't
+    // log fall back to their type. restoreSnapshot ignores the extra
+    // field, so old saves (snapshots without .text) stay loadable.
+    var lastLogNow = game.log[game.log.length - 1];
+    snap.text = (lastLogNow && lastLogNow !== lastLogBefore) ? lastLogNow.text : action.type;
     return game;
 }
 
@@ -317,17 +326,23 @@ function canRedo(game) { return game.future.length > 0; }
 
 function undo(game) {
     if (!canUndo(game)) return game;
-    game.future.push(snapshotOf(game));
-    restoreSnapshot(game, game.history.pop());
-    pushLog(game, "undo");
+    var entry = game.history.pop();
+    var current = snapshotOf(game);
+    current.text = entry.text;      // the same action re-applies on redo
+    game.future.push(current);
+    restoreSnapshot(game, entry);
+    pushLog(game, entry.text ? "undo: " + entry.text : "undo");
     return game;
 }
 
 function redo(game) {
     if (!canRedo(game)) return game;
-    game.history.push(snapshotOf(game));
-    restoreSnapshot(game, game.future.pop());
-    pushLog(game, "redo");
+    var entry = game.future.pop();
+    var current = snapshotOf(game);
+    current.text = entry.text;      // undoing again reverts the same action
+    game.history.push(current);
+    restoreSnapshot(game, entry);
+    pushLog(game, entry.text ? "redo: " + entry.text : "redo");
     return game;
 }
 

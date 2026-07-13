@@ -285,6 +285,50 @@ ok(fresh.players[0].customStatuses[0].name === "Suspected" && fresh.players[0].c
    "reset keeps status names, switches off");
 ok(G.deserialize(G.serialize(g)).players[0].customStatuses[0].on === true, "round-trip: custom statuses");
 
+/* ---- descriptive undo/redo log ---- */
+section("descriptive undo/redo log");
+g = G.createGame(3, 40);
+G.applyAction(g, { type: "cmdDamage", player: 2, source: 0, slot: 0, delta: 1 });
+const dmgText = g.log[g.log.length - 1].text;
+let logLen = g.log.length;
+G.undo(g);
+ok(g.log[g.log.length - 1].text === "undo: " + dmgText, "undo names the undone action");
+ok(g.log.length === logLen + 1, "log is append-only: undone entry stays");
+G.redo(g);
+ok(g.log[g.log.length - 1].text === "redo: " + dmgText, "redo names the redone action");
+G.undo(g);
+ok(g.log[g.log.length - 1].text === "undo: " + dmgText, "undo after redo names it again");
+
+g = G.createGame(2, 40);
+G.applyAction(g, { type: "life", player: 0, delta: -3 });
+G.applyAction(g, { type: "life", player: 1, delta: -7 });
+G.undo(g);
+ok(g.log[g.log.length - 1].text.indexOf("undo: " + g.players[1].name) === 0,
+   "undo picks the LAST action's text");
+G.undo(g);
+ok(g.log[g.log.length - 1].text.indexOf("undo: " + g.players[0].name) === 0,
+   "second undo picks the previous action's text");
+
+g = G.createGame(2, 40);
+G.applyAction(g, { type: "blessing", player: 0, value: true });
+G.undo(g);
+ok(g.log[g.log.length - 1].text === "undo: blessing",
+   "non-logging action falls back to its type");
+
+g = G.createGame(2, 40);
+G.applyAction(g, { type: "life", player: 0, delta: -1 });
+g = G.deserialize(G.serialize(g));
+G.undo(g);
+ok(g.log[g.log.length - 1].text.indexOf("undo: " + g.players[0].name) === 0,
+   "descriptive undo survives serialize round-trip");
+
+g = G.createGame(2, 40);
+G.applyAction(g, { type: "life", player: 0, delta: -1 });
+delete g.history[g.history.length - 1].text; // old save: snapshot without text
+G.undo(g);
+ok(g.log[g.log.length - 1].text === "undo", "old-format snapshot logs plain undo");
+ok(g.players[0].life === 40, "old-format snapshot still restores state");
+
 console.log("\n=========================");
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);
