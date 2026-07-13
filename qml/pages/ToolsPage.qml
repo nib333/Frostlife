@@ -41,6 +41,48 @@ Page {
         }
     }
 
+    /* Dice/coin rolls reuse the shuffle's tick mechanic but BRIEF
+     * (~0.45 s): dice are repeat-use utility, the first-player reveal is
+     * once-per-game ceremony — the durations differ on purpose. Each is
+     * a one-shot restart() chain like revealTimer (never repeat: true),
+     * so nothing keeps ticking once a chain finishes; the tick a chain
+     * settles on IS the roll. Re-tapping mid-roll restarts the chain. */
+    Timer {
+        id: d6Timer
+        property int ticks: 0
+        interval: 40
+        onTriggered: {
+            page.d6Result = String(Math.floor(Math.random() * 6) + 1)
+            ticks++
+            if (ticks < 6) { interval = interval * 1.25; restart() }
+        }
+    }
+    Timer {
+        id: d20Timer
+        property int ticks: 0
+        interval: 40
+        onTriggered: {
+            page.d20Result = String(Math.floor(Math.random() * 20) + 1)
+            ticks++
+            if (ticks < 6) { interval = interval * 1.25; restart() }
+        }
+    }
+    Timer {
+        id: coinTimer
+        property int ticks: 0
+        interval: 40
+        onTriggered: {
+            page.coinResult = Math.random() < 0.5 ? qsTr("Heads") : qsTr("Tails")
+            ticks++
+            if (ticks < 6) { interval = interval * 1.25; restart() }
+        }
+    }
+    function startRoll(t) {   // (re)start a chain; re-tap mid-roll restarts
+        t.ticks = 0
+        t.interval = 40
+        t.restart()
+    }
+
     SilicaFlickable {
         anchors.fill: parent
         contentHeight: height
@@ -113,7 +155,7 @@ Page {
             MouseArea { // d20 — hexagonal icosahedron profile
                 width: parent.width
                 height: d20Col.height + Theme.paddingMedium * 2
-                onClicked: page.d20Result = String(Math.floor(Math.random() * 20) + 1)
+                onClicked: page.startRoll(d20Timer)
                 Rectangle {
                     anchors.fill: parent
                     radius: Theme.paddingSmall
@@ -151,6 +193,7 @@ Page {
                             anchors.centerIn: parent
                             text: page.d20Result || "–"
                             color: page.d20Result ? app.pal.frostBlue : app.pal.mutedText
+                            opacity: d20Timer.running ? 0.55 : 1   // dims while flickering
                             font.pixelSize: page.d20Size * 0.42
                             font.bold: true
                         }
@@ -168,7 +211,7 @@ Page {
             MouseArea { // d6 — rounded square IS a d6
                 width: parent.width
                 height: d6Col.height + Theme.paddingMedium * 2
-                onClicked: page.d6Result = String(Math.floor(Math.random() * 6) + 1)
+                onClicked: page.startRoll(d6Timer)
                 Rectangle {
                     anchors.fill: parent
                     radius: Theme.paddingSmall
@@ -191,6 +234,7 @@ Page {
                             anchors.centerIn: parent
                             text: page.d6Result || "–"
                             color: page.d6Result ? app.pal.frostBlue : app.pal.mutedText
+                            opacity: d6Timer.running ? 0.55 : 1   // dims while flickering
                             font.pixelSize: page.d6Size * 0.42
                             font.bold: true
                         }
@@ -208,8 +252,7 @@ Page {
             MouseArea { // coin — circle
                 width: parent.width
                 height: coinCol.height + Theme.paddingMedium * 2
-                onClicked: page.coinResult =
-                    Math.random() < 0.5 ? qsTr("Heads") : qsTr("Tails")
+                onClicked: page.startRoll(coinTimer)
                 Rectangle {
                     anchors.fill: parent
                     radius: Theme.paddingSmall
@@ -234,6 +277,7 @@ Page {
                             horizontalAlignment: Text.AlignHCenter
                             text: page.coinResult || "–"
                             color: page.coinResult ? app.pal.frostBlue : app.pal.mutedText
+                            opacity: coinTimer.running ? 0.55 : 1   // dims while flickering
                             font.pixelSize: page.coinSize * 0.3
                             font.bold: true
                             fontSizeMode: Text.HorizontalFit
