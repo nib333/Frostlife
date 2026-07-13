@@ -38,7 +38,8 @@ device. All state local, autosaved.
   (case-insensitive), recent-games list, clear behind a remorse timer
 - Settings: rules toggles, keep-awake gate, true-black AMOLED canvas,
   seating layout
-- Tools: roll-for-first-player, d20, d6, coin flip
+- Tools: roll-for-first-player (long ceremonial reveal), d20/d6/coin flip
+  (brief roll flicker, tap to re-roll)
 - Screen keep-awake while app is active (`Nemo.KeepAlive`, user-gated)
 - Cover page with live life totals + undo and reset cover actions
 - Dead-player detection (life ≤ 0, poison ≥ 10, 21 cmd dmg) with panel overlay
