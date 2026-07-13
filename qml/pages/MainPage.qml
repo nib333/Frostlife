@@ -46,6 +46,10 @@ Page {
                 onClicked: app.reset()
             }
             MenuItem {
+                text: qsTr("History")
+                onClicked: pageStack.push(Qt.resolvedUrl("HistoryPage.qml"))
+            }
+            MenuItem {
                 text: qsTr("Undo")
                 enabled: app.canUndo
                 onClicked: app.undoAction()
