@@ -185,11 +185,12 @@ Page {
                 model: app.rev >= 0 ? app.game.players[playerIndex].customStatuses.length : 0
                 delegate: Row {
                     width: col.width
-                    readonly property var cs: app.game.players[playerIndex].customStatuses[index]
                     TextSwitch {
                         width: parent.width - removeStatusBtn.width
-                        text: cs.name
-                        checked: cs.on
+                        text: app.rev >= 0 && index < pl.customStatuses.length
+                              ? pl.customStatuses[index].name : ""
+                        checked: app.rev >= 0 && index < pl.customStatuses.length
+                                 ? pl.customStatuses[index].on : false
                         automaticCheck: false
                         onClicked: app.act({ type: "customStatus", player: playerIndex, index: index })
                     }

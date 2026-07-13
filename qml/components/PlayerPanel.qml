@@ -139,10 +139,11 @@ Rectangle {
             Repeater { // custom statuses (shown when on)
                 model: app.rev >= 0 ? panel.pl.customStatuses.length : 0
                 CounterChip {
-                    readonly property var cs: panel.pl.customStatuses[index]
-                    glyph: cs.name
+                    glyph: app.rev >= 0 && index < panel.pl.customStatuses.length
+                           ? panel.pl.customStatuses[index].name : ""
                     value: 0
-                    alwaysVisible: cs.on
+                    alwaysVisible: app.rev >= 0 && index < panel.pl.customStatuses.length
+                                   ? panel.pl.customStatuses[index].on : false
                     accent: app.pal.frostBlue
                 }
             }
