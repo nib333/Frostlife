@@ -143,7 +143,7 @@ Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: Theme.paddingSmall
             CounterChip { glyph: "\u265B"; value: 0; alwaysVisible: pl ? pl.monarch : false; accent: app.pal.frostBlue } // ♛ monarch
-            CounterChip { glyph: "\u1F5F2"; value: 0; alwaysVisible: pl ? pl.initiative : false; accent: app.pal.frostBlue } // initiative
+            CounterChip { glyph: "\u2694"; value: 0; alwaysVisible: pl ? pl.initiative : false; accent: app.pal.frostBlue } // ⚔ initiative
             Repeater { // custom statuses (shown when on)
                 model: app.rev >= 0 ? panel.pl.customStatuses.length : 0
                 CounterChip {
