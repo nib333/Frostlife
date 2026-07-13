@@ -27,8 +27,10 @@ ApplicationWindow {
      * window as app.pal.* — the qmldir singleton failed to resolve at
      * runtime on-device, leaving default-white Rectangles everywhere. */
     readonly property QtObject pal: QtObject {
-        // deep base / gutters; true black = every canvas pixel physically off
-        readonly property color canvas:      cfgTrueBlack.value ? "#000000" : "#0e161d"
+        // deep base / gutters; true black = every canvas pixel physically
+        // off. Written imperatively by _applyCanvas() — a binding in this
+        // inline object did not notify long-lived pages on device.
+        property color canvas:               "#0e161d"
         readonly property color surface:     "#1c2832"  // player panels = Frostbite ink
         readonly property color surfaceAlt:  "#26333e"  // raised fills / pressed states
         readonly property color primaryText: "#f4f7f9"  // = Frostbite onInk
@@ -78,6 +80,10 @@ ApplicationWindow {
         id: cfgTrueBlack
         key: "/apps/harbour-frostlife/trueBlack"
         defaultValue: false
+        onValueChanged: app._applyCanvas()
+    }
+    function _applyCanvas() {
+        pal.canvas = (cfgTrueBlack.value === true) ? "#000000" : "#0e161d"
     }
     property alias keepAwake: cfgKeepAwake.value
     property alias trueBlack: cfgTrueBlack.value
@@ -94,6 +100,7 @@ ApplicationWindow {
         onTriggered: savedGame.value = Game.serialize(game)
     }
     Component.onCompleted: {
+        _applyCanvas()
         if (savedGame.value && savedGame.value.length > 0) {
             try { game = Game.deserialize(savedGame.value); _sync() }
             catch (e) { console.warn("save restore failed:", e) }
