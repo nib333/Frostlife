@@ -125,6 +125,32 @@ Rectangle {
         return n
     }
 
+    // ---- transient life-delta indicator ----
+    // Rapid taps give no glanceable total, so consecutive life changes
+    // within 1.5 s accumulate into one "+3"/"−5" beside the life number
+    // (green gain / red loss), then fade. Purely visual — reads life
+    // through the same app.rev path as everything else.
+    readonly property int lifeNow: pl ? pl.life : 0
+    property int _lifeSeen: 0
+    property int _lifeDelta: 0
+    property bool _lifeLive: false   // suppress the initial binding evaluation
+    onLifeNowChanged: {
+        if (!_lifeLive) { _lifeSeen = lifeNow; return }
+        var d = lifeNow - _lifeSeen
+        _lifeSeen = lifeNow
+        deltaFade.stop()   // mid-fade = window over: onStopped zeroes the tally first
+        _lifeDelta += d
+        if (_lifeDelta === 0) { deltaLabel.opacity = 0; deltaTimer.stop() }
+        else { deltaLabel.opacity = 1; deltaTimer.restart() }
+    }
+    Component.onCompleted: { _lifeSeen = lifeNow; _lifeLive = true }
+    Timer { id: deltaTimer; interval: 1500; onTriggered: deltaFade.start() }
+    NumberAnimation {
+        id: deltaFade
+        target: deltaLabel; property: "opacity"; to: 0; duration: 400
+        onStopped: panel._lifeDelta = 0
+    }
+
     signal detailRequested(int playerIndex)
 
     rotation: seatRotation
@@ -244,6 +270,25 @@ Rectangle {
                 font.pixelSize: Math.min((panel.wideLayout ? panel.width : panel.height) * 0.42,
                                          Theme.fontSizeHuge * 2.2)
                 font.bold: true
+
+                Label { // accumulated life delta (see panel properties);
+                        // a child so it follows the number in both layouts
+                        // and rotates with the panel, without affecting
+                        // the Grid's centering
+                    id: deltaLabel
+                    opacity: 0
+                    visible: opacity > 0
+                    text: panel._lifeDelta > 0 ? "+" + panel._lifeDelta
+                                               : "−" + (-panel._lifeDelta)
+                    color: panel._lifeDelta > 0 ? app.pal.success : app.pal.error
+                    font.pixelSize: Theme.fontSizeLarge
+                    font.bold: true
+                    anchors {
+                        left: parent.right
+                        leftMargin: Theme.paddingSmall
+                        verticalCenter: parent.verticalCenter
+                    }
+                }
             }
 
             Grid { // counter pills: one centered column; two when the
