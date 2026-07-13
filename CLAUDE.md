@@ -12,7 +12,7 @@ Native Sailfish OS life-counter app for Magic: The Gathering, EDH/Commander-focu
 - AMOLED matters here: the counter runs screen-on for a whole game, so **dark-first design** (true-black backgrounds) is a genuine battery win, not just aesthetics.
 
 ## Stack
-- **QML + Sailfish Silica** for all UI. Pure-QML app (`CONFIG += sailfishapp_qml`); the C++ `main()` is the stock `SailfishApp::main()` and stays minimal.
+- **QML + Sailfish Silica** for all UI. Pure-QML app (`CONFIG += sailfishapp_qml`) — no C++ sources at all; launched via the generic `sailfish-qml` launcher, packaged `noarch`.
 - Logic in JavaScript, in QML or separate `.js` modules.
 - Packaged as **RPM** by the Sailfish SDK build engine.
 - Do not carry over React/Next mental models — QML is declarative with property bindings, and its imperative escape hatches differ.
