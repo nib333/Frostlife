@@ -42,6 +42,10 @@ Page {
                 onClicked: pageStack.push(Qt.resolvedUrl("NewGameDialog.qml"))
             }
             MenuItem {
+                text: qsTr("End game")
+                onClicked: pageStack.push(Qt.resolvedUrl("EndGameDialog.qml"))
+            }
+            MenuItem {
                 text: qsTr("Reset (life %1)").arg(app.game.startingLife)
                 onClicked: app.reset()
             }
@@ -56,6 +60,10 @@ Page {
             MenuItem {
                 text: qsTr("Tools")
                 onClicked: pageStack.push(Qt.resolvedUrl("ToolsPage.qml"))
+            }
+            MenuItem {
+                text: qsTr("Stats")
+                onClicked: pageStack.push(Qt.resolvedUrl("StatsPage.qml"))
             }
             MenuItem {
                 text: qsTr("Undo")

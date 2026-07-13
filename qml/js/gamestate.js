@@ -433,6 +433,23 @@ function shuffleSeats(game, rand) {
     return game;
 }
 
+/* Finished-game record for the stats store. Pure summarizer — the
+ * engine does NOT store stats (they span games; the app keeps them in
+ * dconf). Winner is recorded by NAME: records outlive the game object
+ * and seat indices change between games. */
+function summarizeGame(game, winnerIndex) {
+    var w = game.players[winnerIndex];
+    return {
+        endedAt: Date.now(),
+        playerCount: game.players.length,
+        startingLife: game.startingLife,
+        players: game.players.map(function (p) { return p.name; }),
+        winner: w ? w.name : "",
+        dead: game.players.filter(function (p) { return p.dead; })
+                          .map(function (p) { return p.name; })
+    };
+}
+
 function serialize(game) {
     return JSON.stringify(game);
 }
@@ -462,6 +479,7 @@ if (typeof module !== "undefined" && module.exports) {
         resetGame: resetGame,
         newGameFrom: newGameFrom,
         shuffleSeats: shuffleSeats,
+        summarizeGame: summarizeGame,
         serialize: serialize, deserialize: deserialize,
         totalCmdDamage: totalCmdDamage,
         commanderLabel: commanderLabel,

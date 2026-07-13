@@ -433,6 +433,25 @@ ok(g.players.map(p => p.name).sort().join(",") === before,
 ok(g.players.every((p, i) => p.index === i && p.cmdDamage.length === 6),
    "real RNG: indices and matrix width stay consistent");
 
+/* ---- summarizeGame (pure finished-game record) ---- */
+section("summarizeGame");
+g = G.createGame(3, 40);
+G.applyAction(g, { type: "rename", player: 0, name: "Niklas" });
+G.applyAction(g, { type: "rename", player: 1, name: "Eva" });
+G.applyAction(g, { type: "life", player: 2, delta: -40 }); // Player 3 dies
+let rec = G.summarizeGame(g, 0);
+ok(rec.playerCount === 3 && rec.startingLife === 40, "count and starting life recorded");
+ok(rec.players.join(",") === "Niklas,Eva,Player 3", "all player names listed");
+ok(rec.winner === "Niklas", "winner recorded by name, not index");
+ok(rec.dead.length === 1 && rec.dead[0] === "Player 3", "dead players recorded by name");
+ok(typeof rec.endedAt === "number" && rec.endedAt > 0, "endedAt timestamp set");
+ok(g.players.length === 3 && g.players[0].name === "Niklas" && !("winner" in g),
+   "pure: game object untouched");
+rec = G.summarizeGame(G.deserialize(G.serialize(g)), 1);
+ok(rec.winner === "Eva" && rec.dead[0] === "Player 3", "works after deserialize");
+ok(G.summarizeGame(g, 99).winner === "", "out-of-range winner -> empty name");
+ok(JSON.parse(JSON.stringify(rec)).winner === "Eva", "record is JSON-safe");
+
 console.log("\n=========================");
 console.log(passed + " passed, " + failed + " failed");
 process.exit(failed ? 1 : 0);

@@ -75,6 +75,30 @@ ApplicationWindow {
         _sync()
     }
 
+    // ---- per-game stats store (spans games — NOT in gamestate.js) ----
+    // JSON array of summarizeGame records, most recent 200 kept.
+    ConfigurationValue {
+        id: statsStore
+        key: "/apps/harbour-frostlife/stats"
+        defaultValue: "[]"
+    }
+    property int statsRev: 0    // bump on store writes; StatsPage binds through it
+    function statsRecords() {
+        try { return JSON.parse(statsStore.value || "[]") } catch (e) { return [] }
+    }
+    function endGame(winnerIndex) {
+        var arr = statsRecords()
+        arr.push(Game.summarizeGame(game, winnerIndex))
+        if (arr.length > 200) arr = arr.slice(arr.length - 200)
+        statsStore.value = JSON.stringify(arr)
+        statsRev++
+        reset()   // fresh game, same players/names
+    }
+    function clearStats() {
+        statsStore.value = "[]"
+        statsRev++
+    }
+
     // ---- app settings (device-level, NOT game state) ----
     ConfigurationValue {
         id: cfgKeepAwake
