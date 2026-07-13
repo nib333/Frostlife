@@ -35,23 +35,80 @@ Rectangle {
         }
         return { max: max, n: n }
     }
-    readonly property int counterPillCount: {
-        if (app.rev < 0 || !pl) return 0
-        var c = 0
-        var keys = ["poison", "energy", "experience", "cmdTax"]
-        for (var i = 0; i < keys.length; i++) if (pl.counters[keys[i]] > 0) c++
+    // nonzero counter pills in priority order (built-ins, then customs)
+    readonly property var counterPills: {
+        if (app.rev < 0 || !pl) return []
+        var out = []
+        var defs = [
+            { key: "poison",     glyph: "☠", accent: app.pal.success },
+            { key: "energy",     glyph: "⚡", accent: app.pal.warning },
+            { key: "experience", glyph: "✧", accent: app.pal.frostBlue },
+            { key: "cmdTax",     glyph: "⛁", accent: app.pal.mutedText }
+        ]
+        for (var i = 0; i < defs.length; i++)
+            if (pl.counters[defs[i].key] > 0)
+                out.push({ label: defs[i].glyph, accent: defs[i].accent,
+                           value: pl.counters[defs[i].key],
+                           action: { type: "counter", player: playerIndex,
+                                     counter: defs[i].key } })
         for (var j = 0; j < pl.customCounters.length; j++)
-            if (pl.customCounters[j].value > 0) c++
-        return c
+            if (pl.customCounters[j].value > 0)
+                out.push({ label: pl.customCounters[j].name, accent: app.pal.frostBlue,
+                           value: pl.customCounters[j].value,
+                           action: { type: "customCounter", player: playerIndex,
+                                     index: j } })
+        return out
     }
-    // Estimate the full stack's natural height from pill COUNTS, never
-    // from rendered items — sizing the stack from its own layout would
-    // be a binding loop. Overestimating slightly just engages compact
-    // mode a little early; contentArea clips whatever still won't fit.
+    // Estimate heights from pill COUNTS, never from rendered items —
+    // sizing the stack from its own layout would be a binding loop.
+    // Overestimating slightly just drops into compact/overflow early;
+    // contentArea clips whatever still won't fit.
     readonly property real _pillH: Theme.itemSizeExtraSmall * 0.72 + Theme.paddingSmall / 2
     readonly property real _lifeH: Math.min(height * 0.42, Theme.fontSizeHuge * 2.2) * 1.2
     readonly property bool compact:
-        (dmgAgg.n + counterPillCount) * _pillH + _lifeH > contentArea.height
+        (dmgAgg.n + counterPills.length) * _pillH + _lifeH > contentArea.height
+
+    // ---- space priority: life, then damage pill(s), then counters ----
+    // counters only get what remains after life + damage are reserved
+    readonly property int counterCapacity: {
+        var dmgH = compact ? (dmgAgg.n > 0 ? _pillH : 0) : dmgAgg.n * _pillH
+        var rows = Math.max(0, Math.floor((contentArea.height - _lifeH - dmgH) / _pillH))
+        return compact ? rows * 2 : rows
+    }
+    readonly property int countersShown: counterPills.length <= counterCapacity
+        ? counterPills.length
+        : Math.max(0, counterCapacity - 1)   // one slot goes to the "+N" pill
+
+    // ---- status chips, capped to the panel width with a "+N" chip ----
+    readonly property var statusChips: {
+        if (app.rev < 0 || !pl) return []
+        var out = []
+        if (pl.monarch) out.push("♛")
+        if (pl.initiative) out.push("⚔")
+        if (pl.cityBlessing) out.push("♜")
+        for (var j = 0; j < pl.customStatuses.length; j++)
+            if (pl.customStatuses[j].on) out.push(pl.customStatuses[j].name)
+        return out
+    }
+    function _chipW(text) { // estimated CounterChip width (label + padding)
+        return text.length * Theme.fontSizeExtraSmall * 0.7 + Theme.paddingMedium * 2
+    }
+    readonly property int chipsShown: {
+        var avail = width - Theme.paddingMedium * 2
+        var gap = Theme.paddingSmall
+        var total = 0
+        for (var i = 0; i < statusChips.length; i++)
+            total += _chipW(statusChips[i]) + (i ? gap : 0)
+        if (total <= avail) return statusChips.length
+        avail -= _chipW("+9") + gap          // reserve room for the overflow chip
+        var used = 0, n = 0
+        for (var j = 0; j < statusChips.length; j++) {
+            used += _chipW(statusChips[j]) + (j ? gap : 0)
+            if (used > avail) break
+            n++
+        }
+        return n
+    }
 
     signal detailRequested(int playerIndex)
 
@@ -164,37 +221,33 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
             }
 
-            Grid { // counter pills: one centered column; two when compact
+            Grid { // counter pills: one centered column; two when compact.
+                   // Only countersShown render — counters get the leftover
+                   // space, never the damage pill's or life number's.
                 anchors.horizontalCenter: parent.horizontalCenter
                 columns: panel.compact ? 2 : 1
                 columnSpacing: Theme.paddingSmall
                 rowSpacing: Theme.paddingSmall / 2
                 horizontalItemAlignment: Grid.AlignHCenter
                 Repeater {
-                    model: [
-                        { key: "poison",     glyph: "☠", accent: app.pal.success },
-                        { key: "energy",     glyph: "⚡", accent: app.pal.warning },
-                        { key: "experience", glyph: "✧", accent: app.pal.frostBlue },
-                        { key: "cmdTax",     glyph: "⛁", accent: app.pal.mutedText }
-                    ]
+                    model: panel.countersShown
                     delegate: CounterPill {
-                        label: modelData.glyph
-                        accent: modelData.accent
-                        value: app.rev >= 0 ? panel.pl.counters[modelData.key] : 0
-                        action: ({ type: "counter", player: panel.playerIndex,
-                                   counter: modelData.key })
+                        readonly property var cp: index < panel.counterPills.length
+                                                  ? panel.counterPills[index] : null
+                        label: cp ? cp.label : ""
+                        accent: cp ? cp.accent : app.pal.mutedText
+                        value: cp ? cp.value : 0
+                        action: cp ? cp.action : ({})
                     }
                 }
-                Repeater { // custom counters
-                    model: app.rev >= 0 ? panel.pl.customCounters.length : 0
-                    delegate: CounterPill {
-                        label: app.rev >= 0 && index < panel.pl.customCounters.length
-                               ? panel.pl.customCounters[index].name : ""
-                        accent: app.pal.frostBlue
-                        value: app.rev >= 0 && index < panel.pl.customCounters.length
-                               ? panel.pl.customCounters[index].value : 0
-                        action: ({ type: "customCounter", player: panel.playerIndex,
-                                   index: index })
+                CounterChip { // "+N" overflow; tap opens the detail page
+                    visible: panel.counterPills.length > panel.countersShown
+                    glyph: "+" + (panel.counterPills.length - panel.countersShown)
+                    value: 0
+                    accent: app.pal.mutedText
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: panel.detailRequested(panel.playerIndex)
                     }
                 }
             }
@@ -204,29 +257,39 @@ Rectangle {
     // ---- status chips: fixed-height row pinned to the panel's bottom
     // edge; the 180° rotation carries it, so this is the visual bottom
     // for the player facing the panel ----
-    Row {
+    Item {
         id: chipRow
         height: Theme.itemSizeExtraSmall * 0.6   // reserved even when no chip shows
+        clip: true                               // never past the panel edge
         anchors {
             bottom: parent.bottom
             // top-row panels are flipped, putting this edge at the physical
             // screen top — clear the front-camera cutout there
             bottomMargin: panel.topRow ? Theme.itemSizeExtraSmall : Theme.paddingSmall
-            horizontalCenter: parent.horizontalCenter
+            left: parent.left
+            right: parent.right
         }
-        spacing: Theme.paddingSmall
-        CounterChip { glyph: "♛"; value: 0; alwaysVisible: pl ? pl.monarch : false; accent: app.pal.frostBlue } // ♛ monarch
-        CounterChip { glyph: "⚔"; value: 0; alwaysVisible: pl ? pl.initiative : false; accent: app.pal.frostBlue } // ⚔ initiative
-        CounterChip { glyph: "♜"; value: 0; alwaysVisible: pl ? pl.cityBlessing : false; accent: app.pal.frostBlue } // ♜ city's blessing
-        Repeater { // custom statuses (shown when on)
-            model: app.rev >= 0 ? panel.pl.customStatuses.length : 0
-            CounterChip {
-                glyph: app.rev >= 0 && index < panel.pl.customStatuses.length
-                       ? panel.pl.customStatuses[index].name : ""
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Theme.paddingSmall
+            Repeater { // active chips (♛ / ⚔ / ♜ / custom), capped to fit
+                model: panel.chipsShown
+                CounterChip {
+                    glyph: index < panel.statusChips.length ? panel.statusChips[index] : ""
+                    value: 0
+                    alwaysVisible: true
+                    accent: app.pal.frostBlue
+                }
+            }
+            CounterChip { // "+N" overflow; tap opens the detail page
+                visible: panel.statusChips.length > panel.chipsShown
+                glyph: "+" + (panel.statusChips.length - panel.chipsShown)
                 value: 0
-                alwaysVisible: app.rev >= 0 && index < panel.pl.customStatuses.length
-                               ? panel.pl.customStatuses[index].on : false
                 accent: app.pal.frostBlue
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: panel.detailRequested(panel.playerIndex)
+                }
             }
         }
     }
