@@ -1,15 +1,15 @@
 import QtQuick 2.6
 import Sailfish.Silica 1.0
 
-/* Game-start utilities: d6 / d20 / coin flip and roll-for-first-player.
+/* Game-start utilities: roll-for-first-player, d20, d6, coin flip.
  * Pure UI + Math.random — no engine involvement. Results render big:
  * this page gets read with the phone flat on the table.
  *
- * The dice/coin controls carry no caption text — each is a large tile
- * whose result IS the button (tap to re-roll), distinguished by shape
- * (the coin is a circle) and a subtle corner marker (6 / 20). Only
- * roll-for-first-player keeps a labeled button: it's an action, not a
- * die. */
+ * Layout: a vertical stack of full-width tappable rows, centered on
+ * the page, ordered by usage frequency / thumb reach (first-player
+ * roll on top, coin last). Tapping anywhere on a row (re-)rolls it.
+ * Each die is drawn as its own silhouette — rounded square d6,
+ * hexagonal d20 profile, circular coin — with a text label under it. */
 Page {
     id: page
 
@@ -19,14 +19,8 @@ Page {
     property string d20Result: ""
     property string coinResult: ""
     property string firstText: ""
-    property string firstCaption: ""
     readonly property bool revealing: revealTimer.running
-
-    function rollFirstPlayer() {
-        revealTimer.ticks = 0
-        revealTimer.interval = 50
-        revealTimer.restart()
-    }
+    readonly property real shapeSize: Theme.itemSizeLarge * 1.3
 
     Timer { // decelerating name shuffle (~2 s); the tick it settles on is the pick
         id: revealTimer
@@ -34,166 +28,210 @@ Page {
         interval: 50
         onTriggered: {
             var players = app.game.players
-            firstText = players[Math.floor(Math.random() * players.length)].name
+            page.firstText = players[Math.floor(Math.random() * players.length)].name
             ticks++
             if (ticks < 12) {
-                firstCaption = qsTr("Rolling…")
                 interval = interval * 1.2
                 restart()
-            } else {
-                firstCaption = qsTr("First player")
             }
         }
     }
 
     SilicaFlickable {
         anchors.fill: parent
-        contentHeight: col.height + Theme.paddingLarge * 2
+        contentHeight: height
+
+        PageHeader { id: header; title: qsTr("Tools") }
 
         Column {
             id: col
             width: parent.width - Theme.horizontalPageMargin * 2
-            x: Theme.horizontalPageMargin
-            spacing: Theme.paddingMedium
+            anchors {
+                horizontalCenter: parent.horizontalCenter
+                verticalCenter: parent.verticalCenter
+                verticalCenterOffset: header.height / 2   // center below the header
+            }
+            spacing: Theme.paddingLarge
 
-            PageHeader { title: qsTr("Tools") }
-
-            Row { // d6 | d20 | coin — tap a tile to (re-)roll it
+            MouseArea { // roll for first player — an action, keeps its full label
                 width: parent.width
-                spacing: Theme.paddingMedium
-                readonly property real tileW: (width - spacing * 2) / 3
-
-                Rectangle { // d6: near-square die
-                    width: parent.tileW; height: parent.tileW
+                height: firstCol.height + Theme.paddingMedium * 2
+                onClicked: {
+                    revealTimer.ticks = 0
+                    revealTimer.interval = 50
+                    revealTimer.restart()
+                }
+                Rectangle {
+                    anchors.fill: parent
                     radius: Theme.paddingSmall
-                    color: app.pal.surface
-                    border.color: app.pal.hairline
-
-                    Label {
-                        anchors.centerIn: parent
-                        text: page.d6Result || "–"
-                        color: page.d6Result ? app.pal.frostBlue : app.pal.mutedText
-                        font.pixelSize: Theme.fontSizeHuge * 1.4
-                        font.bold: true
-                    }
-                    Label { // corner marker instead of a caption
-                        text: "6"
-                        color: app.pal.mutedText
-                        opacity: 0.6
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                        anchors { right: parent.right; bottom: parent.bottom; margins: Theme.paddingSmall }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: page.d6Result = String(Math.floor(Math.random() * 6) + 1)
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Theme.paddingSmall
-                            color: app.pal.surfaceAlt
-                            opacity: parent.pressed ? 0.5 : 0
-                        }
-                    }
+                    color: app.pal.surfaceAlt
+                    opacity: parent.pressed ? 0.5 : 0
                 }
-
-                Rectangle { // d20: rounder die + "20" marker
-                    width: parent.tileW; height: parent.tileW
-                    radius: Theme.paddingLarge
-                    color: app.pal.surface
-                    border.color: app.pal.hairline
-
+                Column {
+                    id: firstCol
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.paddingSmall
                     Label {
-                        anchors.centerIn: parent
-                        text: page.d20Result || "–"
-                        color: page.d20Result ? app.pal.frostBlue : app.pal.mutedText
-                        font.pixelSize: Theme.fontSizeHuge * 1.4
-                        font.bold: true
-                    }
-                    Label {
-                        text: "20"
-                        color: app.pal.mutedText
-                        opacity: 0.6
-                        font.pixelSize: Theme.fontSizeExtraSmall
-                        anchors { right: parent.right; bottom: parent.bottom; margins: Theme.paddingSmall }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: page.d20Result = String(Math.floor(Math.random() * 20) + 1)
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: Theme.paddingLarge
-                            color: app.pal.surfaceAlt
-                            opacity: parent.pressed ? 0.5 : 0
-                        }
-                    }
-                }
-
-                Rectangle { // coin: the circle IS the shape cue — no marker
-                    width: parent.tileW; height: parent.tileW
-                    radius: width / 2
-                    color: app.pal.surface
-                    border.color: app.pal.hairline
-
-                    Label {
-                        anchors.centerIn: parent
-                        width: parent.width * 0.8
+                        width: parent.width
                         horizontalAlignment: Text.AlignHCenter
-                        text: page.coinResult || "–"
-                        color: page.coinResult ? app.pal.frostBlue : app.pal.mutedText
-                        font.pixelSize: Theme.fontSizeHuge
+                        text: page.firstText || "–"
+                        textFormat: Text.PlainText  // shows player names
+                        color: page.firstText === "" ? app.pal.mutedText
+                             : page.revealing ? app.pal.mutedText : app.pal.frostBlue
+                        font.pixelSize: Theme.fontSizeHuge * 1.6
                         font.bold: true
-                        fontSizeMode: Text.HorizontalFit
-                        minimumPixelSize: Theme.fontSizeSmall
+                        fontSizeMode: Text.HorizontalFit   // long names shrink to fit
+                        minimumPixelSize: Theme.fontSizeLarge
                     }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: page.coinResult =
-                            Math.random() < 0.5 ? qsTr("Heads") : qsTr("Tails")
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: width / 2
-                            color: app.pal.surfaceAlt
-                            opacity: parent.pressed ? 0.5 : 0
-                        }
+                    Label {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: page.revealing ? qsTr("Rolling…") : qsTr("Roll for first player")
+                        color: app.pal.mutedText
+                        font.pixelSize: Theme.fontSizeSmall
                     }
                 }
             }
 
-            Item { width: 1; height: Theme.paddingLarge * 2 } // breathing room
+            MouseArea { // d20 — hexagonal icosahedron profile
+                width: parent.width
+                height: d20Col.height + Theme.paddingMedium * 2
+                onClicked: page.d20Result = String(Math.floor(Math.random() * 20) + 1)
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Theme.paddingSmall
+                    color: app.pal.surfaceAlt
+                    opacity: parent.pressed ? 0.5 : 0
+                }
+                Column {
+                    id: d20Col
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.paddingSmall
+                    Canvas { // flat-top hexagon, hairline stroke on surface fill
+                        width: page.shapeSize; height: page.shapeSize
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        onPaint: {
+                            var ctx = getContext("2d")
+                            ctx.reset()
+                            var cx = width / 2, cy = height / 2
+                            var r = Math.min(width, height) / 2 - 2
+                            ctx.beginPath()
+                            for (var i = 0; i < 6; i++) {
+                                // vertices at 0°/60°/…: flat edges top + bottom
+                                var a = Math.PI / 3 * i
+                                var x = cx + r * Math.cos(a), y = cy + r * Math.sin(a)
+                                if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y)
+                            }
+                            ctx.closePath()
+                            ctx.fillStyle = String(app.pal.surface)
+                            ctx.fill()
+                            ctx.lineWidth = 2
+                            ctx.strokeStyle = String(app.pal.hairline)
+                            ctx.stroke()
+                        }
+                        Label {
+                            anchors.centerIn: parent
+                            text: page.d20Result || "–"
+                            color: page.d20Result ? app.pal.frostBlue : app.pal.mutedText
+                            font.pixelSize: Theme.fontSizeHuge * 1.2
+                            font.bold: true
+                        }
+                    }
+                    Label {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "d20"
+                        color: app.pal.mutedText
+                        font.pixelSize: Theme.fontSizeSmall
+                    }
+                }
+            }
 
-            // ---- roll for first player: big glanceable reveal ----
-            Label {
+            MouseArea { // d6 — rounded square IS a d6
                 width: parent.width
-                horizontalAlignment: Text.AlignHCenter
-                text: page.firstText
-                textFormat: Text.PlainText  // shows player names
-                color: page.revealing ? app.pal.mutedText : app.pal.frostBlue
-                font.pixelSize: Theme.fontSizeHuge * 2
-                font.bold: true
-                fontSizeMode: Text.HorizontalFit   // long player names shrink to fit
-                minimumPixelSize: Theme.fontSizeLarge
-            }
-            Label {
-                width: parent.width
-                visible: page.firstCaption.length > 0
-                horizontalAlignment: Text.AlignHCenter
-                text: page.firstCaption
-                color: app.pal.mutedText
-                font.pixelSize: Theme.fontSizeSmall
+                height: d6Col.height + Theme.paddingMedium * 2
+                onClicked: page.d6Result = String(Math.floor(Math.random() * 6) + 1)
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Theme.paddingSmall
+                    color: app.pal.surfaceAlt
+                    opacity: parent.pressed ? 0.5 : 0
+                }
+                Column {
+                    id: d6Col
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.paddingSmall
+                    Rectangle {
+                        width: page.shapeSize; height: page.shapeSize
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: Theme.paddingMedium
+                        color: app.pal.surface
+                        border.color: app.pal.hairline
+                        border.width: 2
+                        Label {
+                            anchors.centerIn: parent
+                            text: page.d6Result || "–"
+                            color: page.d6Result ? app.pal.frostBlue : app.pal.mutedText
+                            font.pixelSize: Theme.fontSizeHuge * 1.2
+                            font.bold: true
+                        }
+                    }
+                    Label {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: "d6"
+                        color: app.pal.mutedText
+                        font.pixelSize: Theme.fontSizeSmall
+                    }
+                }
             }
 
-            Button {
-                text: qsTr("Roll for first player")
-                anchors.horizontalCenter: parent.horizontalCenter
-                onClicked: page.rollFirstPlayer()
-            }
-            Label {
+            MouseArea { // coin — circle
                 width: parent.width
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                font.pixelSize: Theme.fontSizeExtraSmall
-                color: app.pal.mutedText
-                text: qsTr("Picks randomly among the %1 players in the current game")
-                      .arg(app.rev >= 0 ? app.game.players.length : 2)
+                height: coinCol.height + Theme.paddingMedium * 2
+                onClicked: page.coinResult =
+                    Math.random() < 0.5 ? qsTr("Heads") : qsTr("Tails")
+                Rectangle {
+                    anchors.fill: parent
+                    radius: Theme.paddingSmall
+                    color: app.pal.surfaceAlt
+                    opacity: parent.pressed ? 0.5 : 0
+                }
+                Column {
+                    id: coinCol
+                    width: parent.width
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Theme.paddingSmall
+                    Rectangle {
+                        width: page.shapeSize; height: page.shapeSize
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        radius: width / 2
+                        color: app.pal.surface
+                        border.color: app.pal.hairline
+                        border.width: 2
+                        Label {
+                            anchors.centerIn: parent
+                            width: parent.width * 0.8
+                            horizontalAlignment: Text.AlignHCenter
+                            text: page.coinResult || "–"
+                            color: page.coinResult ? app.pal.frostBlue : app.pal.mutedText
+                            font.pixelSize: Theme.fontSizeLarge
+                            font.bold: true
+                            fontSizeMode: Text.HorizontalFit
+                            minimumPixelSize: Theme.fontSizeSmall
+                        }
+                    }
+                    Label {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: qsTr("Coin")
+                        color: app.pal.mutedText
+                        font.pixelSize: Theme.fontSizeSmall
+                    }
+                }
             }
         }
         VerticalScrollDecorator {}
