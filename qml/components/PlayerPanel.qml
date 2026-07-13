@@ -12,6 +12,7 @@ Rectangle {
 
     property int playerIndex: 0
     property bool flipped: false          // rotate 180° for across-the-table players
+    property bool topRow: false           // at the physical screen top: chips need camera-cutout clearance
     // read-through helpers; `app.rev` dependency forces re-evaluation
     readonly property var pl: app.rev >= 0 ? app.game.players[playerIndex] : null
 
@@ -140,7 +141,9 @@ Rectangle {
     Row {
         anchors {
             bottom: parent.bottom
-            bottomMargin: Theme.paddingSmall
+            // top-row panels are flipped, putting this edge at the physical
+            // screen top — clear the front-camera cutout there
+            bottomMargin: panel.topRow ? Theme.itemSizeExtraSmall : Theme.paddingSmall
             horizontalCenter: parent.horizontalCenter
         }
         spacing: Theme.paddingSmall

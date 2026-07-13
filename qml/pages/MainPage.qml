@@ -69,6 +69,7 @@ Page {
                 model: page.seatRows.length
                 delegate: Row {
                     readonly property var seats: page.seatRows[index]
+                    readonly property bool isTopRow: index === 0
                     width: layout.width
                     height: (layout.height - gutter * (page.seatRows.length - 1))
                             / page.seatRows.length
@@ -79,6 +80,7 @@ Page {
                         delegate: PlayerPanel {
                             readonly property int seat: seats[index]
                             playerIndex: seat
+                            topRow: isTopRow
                             // top half of the table is flipped to face the players across
                             flipped: seat < Math.floor(page.n / 2) || (page.n === 2 && seat === 0)
                             width: seats.length === 1 ? parent.width
