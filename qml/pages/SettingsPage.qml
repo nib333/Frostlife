@@ -86,6 +86,23 @@ Page {
                 color: app.pal.mutedText
                 text: qsTr("No network access — all data stays on your device.")
             }
+            Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                font.pixelSize: Theme.fontSizeSmall
+                color: app.pal.primaryText
+                text: qsTr("How to use")
+            }
+            Label {
+                width: parent.width
+                wrapMode: Text.WordWrap
+                font.pixelSize: Theme.fontSizeExtraSmall
+                color: app.pal.mutedText
+                textFormat: Text.PlainText
+                text: qsTr("Tap a panel's left/right half for −1/+1 life; press and hold for −5/+5 (repeats).\n"
+                    + "Tap a player's name for commander damage, counters and statuses — \"+N\" pills open the same page.\n"
+                    + "Pull down for new game, undo, history, tools and stats. Reset can be undone.")
+            }
         }
         VerticalScrollDecorator {}
     }
