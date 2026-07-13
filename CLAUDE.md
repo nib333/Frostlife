@@ -100,10 +100,12 @@ Use `Nemo.KeepAlive` → `DisplayBlanking { preventBlanking: true }` during an a
 - CounterSpell (open-source EDH counter) for feature/layout ideas — likely not QML, so port concepts, not code.
 
 ## Current repo status (July 2026, on-device and iterating)
-- Logic engine `qml/js/gamestate.js` is COMPLETE and TESTED: run `node tests/test_gamestate.js` (**94 tests**, must stay green). It has zero QML deps — extend logic there, test under node first, then wire to UI.
+- Logic engine `qml/js/gamestate.js` is COMPLETE and TESTED: run `node tests/test_gamestate.js` (**175 tests**, must stay green). It has zero QML deps — extend logic there, test under node first, then wire to UI.
 - All QML has been **deployed and visually verified on the real phone** through several screenshot rounds (layout, flip rules, compact mode, History page). The workflow stands: after any UI change, `sfdk build`, then ask Niklas for device screenshots before iterating further.
 - Persistence = JSON blob in dconf via `Nemo.Configuration` (debounced 1s + flush on background). Fine for this state size; don't add SQL. Undo snapshots carry a `text` label for descriptive undo/redo — added without a schema bump; old saves still load.
 - UI refresh pattern: QML can't observe plain JS objects, so root exposes `app.rev` (increments on every mutation) and panels bind through it. Keep this pattern; don't fight it with deep bindings.
+- **`MAX_UNDO = 50` is a save-size bound, not a memory tweak.** Every undo snapshot clones all players, and the whole game (history included) rewrites to dconf on each debounced autosave: the stress test measured a saturated 6-player game at 637 KB with depth 200 vs ~227 KB at 50. Don't raise it without rechecking the stress section's logged byte size, and remember `deserialize` trims deeper legacy trails on load.
+- **Binding efficiency reviewed and deliberately NOT optimized** (July 2026): every `app.rev` bump re-evaluates all panels' descriptor lists, but it's cheap by construction — Repeater models are counts (no delegate churn on life ticks), ~300 trivial binding evals per bump, hold-repeat ticks at only ~3 Hz. Revisit ONLY if hold-repeat stutter is actually *felt* on a 6-player around-mode screen, and then with the SDK QML Profiler on device — not speculative caching.
 
 ## Device lessons (hard-won on the real phone — do not relearn)
 - **qmldir-registered QML singletons compile fine but failed silently at runtime** under `sailfish-qml`: every `Palette.*` reference logged "Unable to assign [undefined] to QColor" and Rectangles fell back to default white. The palette now lives as a plain QtObject on the app root (`app.pal.*`), resolved by the same id lookup as `app.rev`/`app.act`. Don't reintroduce qmldir singletons.
