@@ -27,7 +27,8 @@ ApplicationWindow {
      * window as app.pal.* — the qmldir singleton failed to resolve at
      * runtime on-device, leaving default-white Rectangles everywhere. */
     readonly property QtObject pal: QtObject {
-        readonly property color canvas:      "#0e161d"  // deep base / gutters
+        // deep base / gutters; true black = every canvas pixel physically off
+        readonly property color canvas:      cfgTrueBlack.value ? "#000000" : "#0e161d"
         readonly property color surface:     "#1c2832"  // player panels = Frostbite ink
         readonly property color surfaceAlt:  "#26333e"  // raised fills / pressed states
         readonly property color primaryText: "#f4f7f9"  // = Frostbite onInk
@@ -59,6 +60,28 @@ ApplicationWindow {
     function maxCmdDamageFor(p) { return Game.maxCmdDamage(game.players[p]) }
     function cmdLabel(sourceIndex, slot) { return Game.commanderLabel(game.players[sourceIndex], slot) }
 
+    // Rules settings live in game.settings (serialized with the save).
+    // Changing one is not an undoable action — it goes straight to the
+    // game object, then bumps rev + autosaves.
+    function setSetting(key, value) {
+        game.settings[key] = value
+        _sync()
+    }
+
+    // ---- app settings (device-level, NOT game state) ----
+    ConfigurationValue {
+        id: cfgKeepAwake
+        key: "/apps/harbour-frostlife/keepAwake"
+        defaultValue: true
+    }
+    ConfigurationValue {
+        id: cfgTrueBlack
+        key: "/apps/harbour-frostlife/trueBlack"
+        defaultValue: false
+    }
+    property alias keepAwake: cfgKeepAwake.value
+    property alias trueBlack: cfgTrueBlack.value
+
     // ---- persistence (JSON blob in dconf; small state, Harbour-safe) ----
     ConfigurationValue {
         id: savedGame
@@ -82,9 +105,10 @@ ApplicationWindow {
             savedGame.value = Game.serialize(game)
     }
 
-    // ---- keep the screen awake while the app is visible ----
+    // ---- keep the screen awake while the app is visible (user-gated) ----
     DisplayBlanking {
-        preventBlanking: Qt.application.state === Qt.ApplicationActive
+        preventBlanking: cfgKeepAwake.value === true
+                         && Qt.application.state === Qt.ApplicationActive
     }
 
     initialPage: Component { MainPage {} }

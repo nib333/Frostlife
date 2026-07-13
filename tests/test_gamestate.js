@@ -138,6 +138,15 @@ ok(g2.players[0].name === "Niklas", "round-trip: name");
 ok(g2.players[0].life === 33, "round-trip: life");
 ok(g2.players[1].cmdDamage[0][1] === 9, "round-trip: cmd dmg partner slot");
 ok(g2.players[2].monarch === true, "round-trip: monarch");
+// settings round-trip (SettingsPage relies on this)
+g = G.createGame(2, 40);
+g.settings.cmdDamageAffectsLife = false;
+g.settings.autoDeath = false;
+let gS = G.deserialize(G.serialize(g));
+ok(gS.settings.cmdDamageAffectsLife === false, "round-trip: cmdDamageAffectsLife");
+ok(gS.settings.autoDeath === false, "round-trip: autoDeath");
+ok(G.deserialize(G.serialize(G.createGame(2, 40))).settings.cmdDamageAffectsLife === true,
+   "round-trip: settings defaults preserved");
 G.undo(g2);
 ok(g2.players[2].monarch === false, "undo works after deserialize (history survives)");
 threw = false;
