@@ -20,7 +20,13 @@ var SCHEMA_VERSION = 1;
 var MAX_PLAYERS = 6;
 var MIN_PLAYERS = 2;
 var LETHAL_CMD_DAMAGE = 21;
-var MAX_UNDO = 200;
+// Undo depth bounds the SAVE SIZE, not just memory: every snapshot
+// clones all players, and the whole game (history included) is
+// serialized to dconf on each debounced autosave. A saturated 6-player
+// game runs ~3 KB per snapshot — 200 deep measured 637 KB per write;
+// 50 keeps the worst case ~160 KB and is still far more undo than a
+// life counter needs.
+var MAX_UNDO = 50;
 var MAX_CUSTOM_COUNTERS = 8;
 var MAX_CUSTOM_STATUSES = 4;
 
@@ -503,6 +509,8 @@ function deserialize(json) {
     g.settings.cmdDamageAffectsLife = g.settings.cmdDamageAffectsLife !== false;
     g.settings.autoDeath = g.settings.autoDeath !== false;
     if (!Array.isArray(g.history)) g.history = [];
+    if (g.history.length > MAX_UNDO)   // saves from a deeper-undo era shrink on load
+        g.history = g.history.slice(g.history.length - MAX_UNDO);
     if (!Array.isArray(g.future)) g.future = [];
     if (!Array.isArray(g.log)) g.log = [];
     return g;

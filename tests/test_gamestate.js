@@ -540,6 +540,80 @@ ok(G.commanderLabel(gh.players[1], 0) === "🐢🐢🐢", "emoji commander label
 G.undo(g);
 ok(g.log[g.log.length - 1].text.indexOf("undo:") === 0, "log text with hostile name still labels undo");
 
+/* ---- stress: saturated 6-player game ---- */
+section("stress: saturated 6-player game");
+g = G.createGame(6, 40);
+for (let sp = 0; sp < 6; sp++) {
+    G.applyAction(g, { type: "partners", player: sp, value: true });
+    G.applyAction(g, { type: "rename", player: sp, name: "Player-" + sp + " ÅÄÖ 🎲" });
+    G.applyAction(g, { type: "nameCommander", player: sp, slot: 0, name: "Commander " + sp + " · A" });
+    G.applyAction(g, { type: "nameCommander", player: sp, slot: 1, name: "Commander " + sp + " · B" });
+}
+// full N×N×2 saturation: everyone damaged by every other commander AND partner
+for (let sr = 0; sr < 6; sr++)
+    for (let ss = 0; ss < 6; ss++) {
+        if (sr === ss) continue;
+        G.applyAction(g, { type: "cmdDamage", player: sr, source: ss, slot: 0, delta: 3 });
+        G.applyAction(g, { type: "cmdDamage", player: sr, source: ss, slot: 1, delta: 2 });
+    }
+for (let sc = 0; sc < 6; sc++) {
+    G.applyAction(g, { type: "counter", player: sc, counter: "poison", delta: 4 });
+    G.applyAction(g, { type: "counter", player: sc, counter: "energy", delta: 7 });
+    G.applyAction(g, { type: "counter", player: sc, counter: "experience", delta: 3 });
+    G.applyAction(g, { type: "counter", player: sc, counter: "cmdTax", delta: 2 });
+    G.applyAction(g, { type: "counter", player: sc, counter: "cmdTaxPartner", delta: 1 });
+}
+for (let sm = 0; sm < 6; sm++) {
+    for (let cc2 = 0; cc2 < G.MAX_CUSTOM_COUNTERS; cc2++) {
+        G.applyAction(g, { type: "addCustomCounter", player: sm, name: "counter-" + cc2 });
+        G.applyAction(g, { type: "customCounter", player: sm, index: cc2, delta: cc2 + 1 });
+    }
+    for (let st2 = 0; st2 < G.MAX_CUSTOM_STATUSES; st2++) {
+        G.applyAction(g, { type: "addCustomStatus", player: sm, name: "status-" + st2 });
+        G.applyAction(g, { type: "customStatus", player: sm, index: st2 });
+    }
+}
+G.applyAction(g, { type: "monarch", player: 2 });
+G.applyAction(g, { type: "initiative", player: 3 });
+G.applyAction(g, { type: "blessing", player: 4, value: true });
+
+// saturation sanity
+let satOk = true;
+for (let vr = 0; vr < 6; vr++) {
+    const vp = g.players[vr];
+    if (vp.life !== 40 - 5 * 5) satOk = false;           // 5 sources × (3+2) dmg
+    if (vp.customCounters.length !== G.MAX_CUSTOM_COUNTERS) satOk = false;
+    if (vp.customStatuses.length !== G.MAX_CUSTOM_STATUSES) satOk = false;
+    for (let vs = 0; vs < 6; vs++) {
+        if (vr === vs) continue;
+        if (vp.cmdDamage[vs][0] !== 3 || vp.cmdDamage[vs][1] !== 2) satOk = false;
+    }
+}
+ok(satOk, "matrix fully saturated, life reflects 25 dmg, customs maxed");
+ok(g.history.length === G.MAX_UNDO, "undo trail saturated at MAX_UNDO");
+
+// round-trip fidelity: byte-identical through serialize → deserialize → serialize
+const wire = G.serialize(g);
+ok(G.serialize(G.deserialize(wire)) === wire, "saturated round-trip is byte-identical");
+const kb = Math.round(Buffer.byteLength(wire, "utf8") / 1024);
+console.log("    (saturated save: " + kb + " KB — full " + G.MAX_UNDO + "-deep undo trail)");
+ok(Buffer.byteLength(wire, "utf8") < 256 * 1024, "save comfortably under 256 KB");
+// old saves from the 200-deep-undo era shrink to the current bound on load
+let fat = JSON.parse(wire);
+while (fat.history.length < 200) fat.history.push(fat.history[0]);
+ok(G.deserialize(JSON.stringify(fat)).history.length === G.MAX_UNDO,
+   "oversized legacy undo trail trimmed on load");
+
+// 50-deep undo/redo through the saturated state
+const beforeBurst = JSON.stringify(g.players);
+for (let ba = 0; ba < 50; ba++)
+    G.applyAction(g, { type: "life", player: ba % 6, delta: (ba % 2) ? 1 : -1 });
+const afterBurst = JSON.stringify(g.players);
+for (let bu = 0; bu < 50; bu++) G.undo(g);
+ok(JSON.stringify(g.players) === beforeBurst, "50-deep undo restores the saturated state exactly");
+for (let br = 0; br < 50; br++) G.redo(g);
+ok(JSON.stringify(g.players) === afterBurst, "50 redos re-apply the burst exactly");
+
 /* ---- stats name normalization ---- */
 section("stats name normalization");
 ok(G.nameKey("Masa") === G.nameKey("masa "), "trim + case fold: same key");
