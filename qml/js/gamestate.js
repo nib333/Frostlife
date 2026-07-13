@@ -381,6 +381,16 @@ function resetGame(game, startingLife) {
         fresh.players[i].customStatuses = statuses[i];
     }
     fresh.settings = clone(game.settings);
+    // Reset is UNDOABLE: the old undo trail carries over, topped with a
+    // snapshot of the full pre-reset state — an accidental reset (pulley
+    // item or the one-tap cover action) is recovered by a single Undo,
+    // and further undos continue into the pre-reset history.
+    var snap = snapshotOf(game);
+    snap.text = "Reset (life " + fresh.startingLife + ")";
+    fresh.history = game.history.concat([snap]);
+    if (fresh.history.length > MAX_UNDO)
+        fresh.history = fresh.history.slice(fresh.history.length - MAX_UNDO);
+    pushLog(fresh, snap.text);
     return fresh;
 }
 

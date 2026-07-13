@@ -163,9 +163,50 @@ let fresh = G.resetGame(g);
 ok(fresh.players[1].life === 40, "reset restores life");
 ok(fresh.players[1].name === "Aino", "reset keeps names");
 ok(fresh.players[1].partners === true, "reset keeps partner setting");
-ok(fresh.history.length === 0, "reset clears history");
+ok(fresh.history.length === g.history.length + 1,
+   "reset carries the undo trail plus its own snapshot");
 fresh = G.resetGame(g, 20);
 ok(fresh.players[0].life === 20, "reset can change starting life");
+
+/* ---- undoable reset ---- */
+section("undoable reset");
+g = G.createGame(3, 40);
+G.applyAction(g, { type: "rename", player: 0, name: "Masa" });
+G.applyAction(g, { type: "life", player: 0, delta: -7 });
+G.applyAction(g, { type: "cmdDamage", player: 0, source: 1, slot: 0, delta: 5 });
+G.applyAction(g, { type: "counter", player: 2, counter: "poison", delta: 3 });
+g = G.resetGame(g);
+ok(g.players[0].life === 40 && g.players[0].cmdDamage[1][0] === 0
+   && g.players[2].counters.poison === 0, "reset zeroes life, damage, counters");
+ok(G.canUndo(g), "reset is undoable");
+ok(g.log[g.log.length - 1].text === "Reset (life 40)", "reset logs itself");
+G.undo(g);
+ok(g.players[0].life === 28, "undo after reset restores life (incl. cmd deduction)");
+ok(g.players[0].cmdDamage[1][0] === 5, "undo after reset restores cmd damage");
+ok(g.players[2].counters.poison === 3, "undo after reset restores counters");
+ok(g.players[0].name === "Masa", "undo after reset restores names");
+ok(g.log[g.log.length - 1].text === "undo: Reset (life 40)", "undo names the reset");
+ok(G.canRedo(g), "undone reset is redoable");
+G.redo(g);
+ok(g.players[0].life === 40 && g.players[2].counters.poison === 0,
+   "redo re-applies the reset");
+G.undo(g);   // back to pre-reset state
+G.undo(g);   // past the reset: undoes the poison action
+ok(g.players[2].counters.poison === 0 && g.players[0].cmdDamage[1][0] === 5,
+   "undo continues past the reset into the pre-reset trail");
+g = G.createGame(2, 40);
+G.applyAction(g, { type: "life", player: 0, delta: -1 });
+g = G.resetGame(g, 20);
+ok(g.log[g.log.length - 1].text === "Reset (life 20)",
+   "reset label reflects a changed starting life");
+G.undo(g);
+ok(g.players[0].life === 39 && g.startingLife === 40,
+   "undo restores the previous starting life too");
+g = G.createGame(2, 40);
+for (let b = 0; b < G.MAX_UNDO + 10; b++)
+    G.applyAction(g, { type: "life", player: 0, delta: 1 });
+g = G.resetGame(g);
+ok(g.history.length === G.MAX_UNDO, "reset keeps the carried undo trail bounded");
 
 /* ---- rename edge ---- */
 g = G.createGame(2, 20);
