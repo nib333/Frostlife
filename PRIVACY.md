@@ -13,5 +13,7 @@ Frostlife does not collect, transmit, or share any data.
 - **No third parties.** Nothing is shared with Jolla, the developer, or
   anyone else. There is no telemetry or crash reporting.
 
-You can delete all app data at any time by uninstalling Frostlife, or by
-using the in-app "Clear stats" option under Settings.
+You can delete recorded stats at any time with the in-app "Clear stats"
+option on the Stats page. Saved game state and settings live in your
+user configuration database on the device; they never leave it, and
+starting a new game or reinstalling the app overwrites them.
