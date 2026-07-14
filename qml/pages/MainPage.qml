@@ -184,14 +184,24 @@ Page {
                         ]
                     }
                     if (page.n === 6) {
-                        var tH = (H - g * 3) * 0.22, mH = (H - g * 3) * 0.28
+                        // The flipped top seat pays the camera-cutout
+                        // clearance out of its pill strip's edge margin
+                        // (cutoutEdge "bottom" → itemSizeExtraSmall vs
+                        // the normal paddingSmall) — grant it exactly
+                        // that delta as extra height, paid by the side
+                        // rows, so its life number keeps the same
+                        // breathing room as the uncut bottom seat.
+                        var cut = Theme.itemSizeExtraSmall - Theme.paddingSmall
+                        var base = H - g * 3 - cut
+                        var tTop = base * 0.22 + cut
+                        var tBot = base * 0.22, mH = base * 0.28
                         return [
-                            { x: 0,        y: tH + g,              w: colW, h: mH, rot: 90 },
-                            { x: 0,        y: tH + mH + g * 2,     w: colW, h: mH, rot: 90 },
-                            { x: 0,        y: tH + mH * 2 + g * 3, w: W,    h: tH, rot: 0 },
-                            { x: colW + g, y: tH + mH + g * 2,     w: colW, h: mH, rot: -90 },
-                            { x: colW + g, y: tH + g,              w: colW, h: mH, rot: -90 },
-                            { x: 0,        y: 0,                   w: W,    h: tH, rot: 180 }
+                            { x: 0,        y: tTop + g,              w: colW, h: mH,   rot: 90 },
+                            { x: 0,        y: tTop + mH + g * 2,     w: colW, h: mH,   rot: 90 },
+                            { x: 0,        y: tTop + mH * 2 + g * 3, w: W,    h: tBot, rot: 0 },
+                            { x: colW + g, y: tTop + mH + g * 2,     w: colW, h: mH,   rot: -90 },
+                            { x: colW + g, y: tTop + g,              w: colW, h: mH,   rot: -90 },
+                            { x: 0,        y: 0,                     w: W,    h: tTop, rot: 180 }
                         ]
                     }
                     return []
