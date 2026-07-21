@@ -84,7 +84,7 @@ Page {
                 wrapMode: Text.WordWrap
                 font.pixelSize: Theme.fontSizeExtraSmall
                 color: app.pal.mutedText
-                text: qsTr("A dark-first life counter for Magic: The Gathering (EDH)")
+                text: qsTr("A life counter for Magic: The Gathering")
             }
             Label {
                 width: parent.width
