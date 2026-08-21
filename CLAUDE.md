@@ -1,0 +1,121 @@
+# CLAUDE.md — Frostlife
+
+## What this is
+Native Sailfish OS life-counter app for Magic: The Gathering, EDH/Commander-focused. Solo project. A **self-contained codebase**: no backend, no auth, no database, no network at all. All state is local. This simplicity is the point — it removes most of what makes apps hard.
+
+(Display name is **Frostlife**. The binary/package name stays `harbour-frostlife` — the `harbour-` prefix is required for store submission.)
+
+## Target device
+- 2026 Jolla Phone (DIT model), Sailfish OS 5.2.
+- SoC: MediaTek Dimensity 7100 → **aarch64** (64-bit ARM). Build target is `aarch64`, NOT the old `armv7hl`.
+- Display: 6.36" FullHD+ AMOLED, 20:9, ~390 ppi. Design for this tall aspect ratio.
+- AMOLED matters here: the counter runs screen-on for a whole game, so a **dark theme** (true-black backgrounds) is a genuine battery win, not just aesthetics.
+
+## Stack
+- **QML + Sailfish Silica** for all UI. Pure-QML app (`CONFIG += sailfishapp_qml`) — no C++ sources at all; launched via the generic `sailfish-qml` launcher, packaged `noarch`.
+- Logic in JavaScript, in QML or separate `.js` modules.
+- Packaged as **RPM** by the Sailfish SDK build engine.
+- QML is declarative with property bindings; don't assume web-framework semantics — its imperative escape hatches differ.
+
+## ⚠️ Hard constraint: you cannot see the UI
+You (the agent) **cannot see rendered QML**. Code that compiles can still be visually broken — misaligned, unreadable, wrong rotation, bad spacing.
+- After ANY change affecting layout or appearance, **stop and ask the maintainer for a screenshot or description** before continuing. Never assume a UI change worked.
+- Never chain multiple UI changes without a visual check in between.
+- Logic changes (damage math, counters, persistence) can proceed normally — but cover them with tests.
+
+## Build & deploy (CLI)
+The SDK ships `sfdk`. Typical loop:
+```
+sfdk tools list                                          # find the exact aarch64 target name
+sfdk config --global --push target SailfishOS-5.1.0.11-aarch64   # installed tooling (5.1 RPMs run fine on the 5.2 phone)
+sfdk build                                               # cross-compiles to ARM, builds the RPM
+sfdk deploy --sdk                                        # or deploy to a connected device
+```
+- Set the target at **global** scope — session scope doesn't survive across shell invocations.
+- RPMs land in `~/RPMS/SailfishOS-5.1.0.11-aarch64/`. An `sfdk device` IS configured, but the maintainer runs the deploy step.
+- Device SSH is password-only — the agent cannot pull `journalctl` itself; ask the maintainer for logs (`ssh` in, run `sailfish-qml harbour-frostlife` to see QML errors live).
+- Read compiler/QML errors from `sfdk build` and fix in a loop — **this half of the feedback cycle IS available to you.**
+- The SDK **emulator is x86 (i486) in VirtualBox** and won't match aarch64 exactly. Use it for logic/layout sanity only; **final legibility and battery checks happen on the real phone** (manual — the maintainer does these).
+- Docker build engine pulls from Jolla repos — if run in a sandbox, those domains must be allowlisted, or run the SDK outside the sandbox.
+
+## Project layout
+```
+harbour-frostlife/
+├── harbour-frostlife.pro
+├── rpm/harbour-frostlife.spec
+├── qml/
+│   ├── harbour-frostlife.qml     # ApplicationWindow
+│   ├── pages/                    # MainPage, per-player panels, settings
+│   ├── cover/CoverPage.qml       # life totals shown when backgrounded
+│   └── js/                       # game logic modules (damage model, history)
+└── harbour-frostlife.desktop
+```
+
+## Architecture — the parts that need care
+1. **Commander-damage model = N×N matrix.** Each player tracks damage received from every other player's commander, split per partner. Build and test this data model *first*; the swipe-to-view UI is trivial once the model is right.
+2. **Undo/redo + action history.** Keep a clean action log / state stack from the start — do not bolt it on later. Every mutation (life ±, counter ±, damage) is a history entry.
+3. **Autosave / crash protection.** Persist full game state so a crash or reboot never wipes a game. Simplest Harbour-safe route: serialize state to JSON in the app's data dir on every mutation (debounced), reload on launch.
+4. **Multi-player layouts (2–6).** Rotated/inverted panels so players around a table read right-side-up. Use QML rotation transforms; arrange responsively for the 20:9 screen.
+
+## Design language (dark, Sailfish-native)
+**Decision: dark theme.** Reasons: (1) the counter is screen-on for the whole game via `preventBlanking`, and on AMOLED a dark base keeps most pixels physically off — a light background would light nearly every pixel at brightness for an hour; (2) Silica is dark by default, so a dark app feels native; (3) high-contrast pale-on-dark reads better across a table and in dim rooms. Carried through the **frost-blue accent and calm character**, not a light background. (If ever flipped to light, the original tokens map straight across.)
+
+Palette (`canvas`/`surfaceAlt`/`hairline` are derived, muted + states are lightened for dark). It lives as a QtObject on the app root — reference it as `app.pal.*` (NOT a qmldir singleton; see Device lessons):
+```qml
+// canvas "#0e161d" is NOT a pal token: it switches at runtime (true-black
+// toggle → "#000000") and lives as the flat root property `app.canvasColor`
+// (see Device lessons on inline-QtObject sub-properties)
+readonly property color surface:     "#1c2832"  // player panels / cards — the ink surface tone
+readonly property color surfaceAlt:  "#26333e"  // raised fills / dividers
+readonly property color primaryText: "#f4f7f9"  // primary text on dark
+readonly property color mutedText:   "#9aa8b3"  // secondary text
+readonly property color hairline:    "#2b3a45"  // rules on dark
+readonly property color frostBlue:   "#7dbfe5"  // accent / active player
+readonly property color success:     "#4ade80"
+readonly property color error:       "#f87171"
+readonly property color warning:     "#fbbf24"
+```
+- `surface #1c2832` is dark but not true black — use it for **panels**, keep `canvas` as the deepest layer so "off" areas actually save power.
+- Large legible numbers, hairline rules, generous spacing, calm and premium. Legibility beats decoration.
+- Prefer Silica `Theme` sizing/spacing tokens over hardcoded pixels where practical.
+
+## Feature scope
+**Implemented and device-verified:** multi-player life totals (2–6, explicit row layout, flip rule = every row except the bottom row flips 180°); commander-damage matrix with partner slots and `cmdLabel` naming (commander name, falling back to player name / "· A"/"· B" for unnamed partners); counters poison/energy/experience/cmd tax; custom counters (max 8; names survive reset, values zeroed); custom statuses (max 4; names survive reset, switched off); monarch/initiative (exclusive) + city's blessing; interactive panel pills with ± for damage and counters; panel layout: name → status chips (under the name) → life (anchored, centered) → ALL pills in a bottom thumb strip (damage first, then counters, then "+N" overflow; priority life > damage > counters), with compact mode collapsing damage to one aggregate "⚔ max +N" chip when the strip's slots run out — same structure in rows and around modes, camera-cutout clearance on whichever panel has its local bottom at the physical top; History page (reverse-chronological log, undo/redo buttons, descriptive "undo: <action>" entries); autosave; keep-screen-awake; reset / starting-life presets; cover page.
+**Also implemented since:** History page, Settings (rules toggles, keep-awake gate, true-black canvas via `app.canvasColor`), Tools (d6/d20/coin/first-player roll), randomize seating on new game (identities carry into new games via `newGameFrom`), per-game stats (End game → dconf store → Stats page), around-the-table seating mode (90° side seats, wide panel arrangement, `cutoutEdge` camera clearance).
+**Still to build:** storm counter, landscape.
+
+## Keep-awake
+Use `Nemo.KeepAlive` → `DisplayBlanking { preventBlanking: true }` during an active game (Harbour-allowed). Only prevent blanking while a game is active; release it otherwise.
+
+## Harbour rules (only if publishing to the store)
+- App name / binary use the `harbour-` prefix.
+- Only whitelisted APIs are allowed (`Nemo.KeepAlive` is fine). Check any new import against the Harbour FAQ before relying on it.
+- Not needed for personal sideloading via Developer Mode — only for store submission.
+
+## Testing discipline
+- The logic layer (damage math, life arithmetic, counter edge cases, autosave round-trip) must have tests. Correctness first, then wire to UI.
+- Gate-review before commits. The maintainer reviews; the agent does not self-approve UI it cannot see.
+
+## References (Silica is thin in training data — lean on these)
+- Sailfish docs: https://docs.sailfishos.org
+- Silica component reference (in the SDK: Help → Sailfish Silica Reference)
+- CounterSpell (open-source EDH counter) for feature/layout ideas — likely not QML, so port concepts, not code.
+
+## Current repo status (July 2026, on-device and iterating)
+- Logic engine `qml/js/gamestate.js` is COMPLETE and TESTED: run `node tests/test_gamestate.js` (**175 tests**, must stay green). It has zero QML deps — extend logic there, test under node first, then wire to UI.
+- All QML has been **deployed and visually verified on the real phone** through several screenshot rounds (layout, flip rules, compact mode, History page). The workflow stands: after any UI change, `sfdk build`, then ask the maintainer for device screenshots before iterating further.
+- Persistence = JSON blob in dconf via `Nemo.Configuration` (debounced 1s + flush on background). Fine for this state size; don't add SQL. Undo snapshots carry a `text` label for descriptive undo/redo — added without a schema bump; old saves still load.
+- UI refresh pattern: QML can't observe plain JS objects, so root exposes `app.rev` (increments on every mutation) and panels bind through it. Keep this pattern; don't fight it with deep bindings.
+- **`MAX_UNDO = 50` is a save-size bound, not a memory tweak.** Every undo snapshot clones all players, and the whole game (history included) rewrites to dconf on each debounced autosave: the stress test measured a saturated 6-player game at 637 KB with depth 200 vs ~227 KB at 50. Don't raise it without rechecking the stress section's logged byte size, and remember `deserialize` trims deeper legacy trails on load.
+- **Binding efficiency reviewed and deliberately NOT optimized** (July 2026): every `app.rev` bump re-evaluates all panels' descriptor lists, but it's cheap by construction — Repeater models are counts (no delegate churn on life ticks), ~300 trivial binding evals per bump, hold-repeat ticks at only ~3 Hz. Revisit ONLY if hold-repeat stutter is actually *felt* on a 6-player around-mode screen, and then with the SDK QML Profiler on device — not speculative caching.
+
+## Device lessons (hard-won on the real phone — do not relearn)
+- **qmldir-registered QML singletons compile fine but failed silently at runtime** under `sailfish-qml`: every `Palette.*` reference logged "Unable to assign [undefined] to QColor" and Rectangles fell back to default white. The palette now lives as a plain QtObject on the app root (`app.pal.*`), resolved by the same id lookup as `app.rev`/`app.act`. Don't reintroduce qmldir singletons.
+- **Every displayed value must bind through `app.rev` explicitly.** Capturing a JS object into a property without an `app.rev` dependency (e.g. `readonly property var cc: pl.customCounters[index]`) evaluates once and renders stale forever. Bind by index through `app.rev` in the expression itself.
+- **Loader + `Binding { target: item }` + callbacks assigned in `Component.onCompleted` broke on device** (values never refreshed). Use plain file components (StepperRow, CounterPill) with ordinary property bindings and per-row action objects instead.
+- **QML `\u` escapes are exactly 4 hex digits.** `"Ὗ2"` parses as U+1F5F + literal "2" and renders garbage. Astral-plane characters need surrogate pairs — but prefer BMP glyphs (♛ ⚔ ♜ ☠ ⚡); device emoji coverage is uncertain.
+- **QML `Grid` sizes each column to its widest child** — a full-width child pushes the other column off-screen. Lay out mixed-width rows explicitly (Column of Rows), as MainPage does.
+- **Bindings through inline QtObject sub-properties proved unreliable for change delivery on device** (`pal.canvas` updates never reached long-lived pages) — switchable values belong as flat root-window properties written imperatively (the `app.rev` pattern; see `app.canvasColor`).
+- **Never size a container from its own rendered content when that content depends on the size** (binding loop). Compact/overflow decisions in PlayerPanel are computed from pill *counts* and theme constants against structurally reserved space, with `clip: true` as the backstop.
+- **The life number is ANCHORED to the panel; siblings anchor around it. Flow positioners must never own the life label's position.** As a Grid/Column cell it was positioned by its siblings — off-center even at baseline, drifting as pills appeared/disappeared, and un-fixable by pinning the positioner's width (returning `undefined` from a `width` binding silently kills the WHOLE binding, both branches — width is not resettable; anchor lines ARE, so `undefined` in anchor ternaries is fine and used deliberately in PlayerPanel). Pattern: `lifeLabel` is `anchors.centerIn` the content band between the status row and the bottom pill strip; the strip RESERVES its rows structurally (`stripRows × _pillH`, even when empty) so pills appearing/disappearing can never move life, and the full-width −/+ band at life's height stays pill-free by construction. Pills are hard-bounded by `maxWidth` (`panel.pillColW`, derived from `stripCols` and the finger-safe `_stripGap` that also feeds the Grid's `columnSpacing` — keep the two coupled) so content can never inflate any layout, and CounterPill's tap zones are a fixed theme constant (`fontSizeMedium×1.4`) — sizing them from `pill.height` consumed the whole label budget, zeroed `_labelMax`, and a 0-width Label paints at implicit width (truncation silently OFF).
+- Hardware: the front-camera cutout sits at the physical top — whichever LOCAL panel edge lies there gets clearance via `PlayerPanel.cutoutEdge` ("bottom" pads the pill strip's edge margin, "left"/"right" inset side-seat content). That clearance is paid out of the panel's own height: a fixed-proportion seat table starves the flipped seat's life band (strip and chips visibly touched the life number on the n=6 around top seat), so MainPage grants that seat the clearance delta as extra height — keep seat budgets clearance-aware.

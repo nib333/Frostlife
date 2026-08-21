@@ -1,0 +1,8 @@
+RPMS/
+*.rpm
+.qmake.stash
+Makefile
+*.pro.user
+documentation.list
+.sfdk/
+.claude/settings.local.json
