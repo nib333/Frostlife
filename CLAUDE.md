@@ -26,8 +26,8 @@ You (the agent) **cannot see rendered QML**. Code that compiles can still be vis
 ## Build & deploy (CLI)
 The SDK ships `sfdk`. Typical loop:
 ```
-sfdk tools list                                          # find the exact aarch64 target name
-sfdk config --global --push target SailfishOS-5.1.0.11-aarch64   # installed tooling (5.1 RPMs run fine on the 5.2 phone)
+sfdk tools list                                          # authoritative: use the aarch64 target it prints, not the version below
+sfdk config --global --push target SailfishOS-5.1.0.11-aarch64   # installed tooling here (5.1 RPMs run fine on the 5.2 phone)
 sfdk build                                               # cross-compiles to ARM, builds the RPM
 sfdk deploy --sdk                                        # or deploy to a connected device
 ```
@@ -74,6 +74,7 @@ readonly property color frostBlue:   "#7dbfe5"  // accent / active player
 readonly property color success:     "#4ade80"
 readonly property color error:       "#f87171"
 readonly property color warning:     "#fbbf24"
+readonly property color deadOverlay: "#aa0e161d" // dimming for eliminated players
 ```
 - `surface #1c2832` is dark but not true black — use it for **panels**, keep `canvas` as the deepest layer so "off" areas actually save power.
 - Large legible numbers, hairline rules, generous spacing, calm and premium. Legibility beats decoration.

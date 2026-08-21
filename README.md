@@ -13,7 +13,9 @@ data stays on your device. All state local, autosaved.
   the phone's long edges, wide panel arrangement
 - Tap ±1 life, press-and-hold ±5 (repeating), with a transient accumulated
   delta indicator (green gains / red losses)
-- Commander damage matrix per source player, partner slots, life auto-deduction, 21-lethal
+- Commander damage matrix per source player, partner slots, 21-lethal; entering
+  damage also deducts life ("Commander damage reduces life" in Settings, on by
+  default)
 - Commander naming: labels use the commander's name, falling back to
   player name / "· A"/"· B" for unnamed partners (`cmdLabel`)
 - Poison / energy / experience / commander tax counters
@@ -21,11 +23,13 @@ data stays on your device. All state local, autosaved.
 - Custom statuses (max 4) — names survive reset, switched off
 - Monarch & initiative (exclusive), city's blessing
 - Interactive panel pills with −/+ for commander damage and all counters
-- Priority-based panel layout (life > damage > counters > status) with
-  compact mode on small panels: aggregate "⚔ max +N" damage pill,
-  2-column counter grid, "+N" overflow pills/chips that open the detail page
-- Status chips anchored to the panel bottom, with camera-cutout clearance
-  on top-row (flipped) panels
+- Bottom pill strip filled by priority (life → damage → counters) with compact
+  mode when the slots run out: aggregate "⚔ max +N" damage pill, "+N" overflow
+  pills that open the detail page. The grid is 2 columns in rows mode, 4 in
+  around-the-table mode
+- Status chips in a fixed-height row directly under the player name, at the
+  panel-local top — capped separately, by width, with their own "+N" overflow
+  chip; camera-cutout clearance on whichever panel edge sits at the physical top
 - Undo / redo (bounded history) with descriptive log entries
   ("undo: Player 3 takes 1 cmd dmg from Player 1 → 4"); reset is undoable —
   one Undo restores the whole pre-reset game
@@ -42,6 +46,7 @@ data stays on your device. All state local, autosaved.
 - Screen keep-awake while app is active (`Nemo.KeepAlive`, user-gated)
 - Cover page with live life totals + undo and reset cover actions
 - Dead-player detection (life ≤ 0, poison ≥ 10, 21 cmd dmg) with panel overlay
+  ("Automatic death detection" in Settings, on by default)
 
 ## Prerequisites
 1. **Sailfish SDK** — https://sailfishos.org/develop (choose the **Docker** build
@@ -52,12 +57,19 @@ data stays on your device. All state local, autosaved.
 
 ## Build & deploy (sfdk CLI)
 ```sh
-sfdk tools list                                    # find exact target name
-sfdk config target=SailfishOS-5.2.0.29-aarch64     # adjust to your target
+sfdk tools list                                    # list installed targets
+sfdk config target=SailfishOS-5.1.0.11-aarch64     # this build is made with 5.1.0.11
 sfdk build                                         # → RPM in ./RPMS/
 sfdk config device=<your-device-name>              # devices set up in the IDE
 sfdk deploy --sdk                                  # install + run on device
 ```
+Don't copy the target version verbatim — use whatever `sfdk tools list` prints
+on your own machine. Any aarch64 target works; 5.1 RPMs run fine on a 5.2 phone.
+
+`sfdk build` writes the RPM to `./RPMS/` by default. If you have configured an
+`output-prefix`, it lands in a target-named subdirectory under that instead —
+e.g. `~/RPMS/SailfishOS-5.1.0.11-aarch64/`.
+
 Or open `harbour-frostlife.pro` in the Sailfish IDE and hit Deploy.
 
 ## Logic tests (no SDK needed)
@@ -75,8 +87,8 @@ Any change to `qml/js/gamestate.js` must keep this green.
   tokens — a QtObject on the root, deliberately NOT a qmldir singleton),
   undo/redo, autosave, keep-awake.
 - `qml/components/PlayerPanel.qml` — one player tile: full-panel life tap
-  zones, then name row / clipped pill area / status chip row reserved
-  structurally; compact mode + overflow when space runs out.
+  zones, then name row → status chips → life → bottom pill strip, the strip
+  reserved structurally; compact mode + overflow when space runs out.
 - `qml/components/CounterPill.qml`, `CounterChip.qml` — interactive −/+ pill
   and display-only chip; `StepperRow.qml` — label/−/value/+ row on the
   detail page.
